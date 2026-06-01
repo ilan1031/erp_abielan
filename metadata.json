@@ -1,0 +1,6 @@
+{
+  "name": "Abielan ERP",
+  "description": "Premium enterprise ERP featuring interactive analytics dashboards, AI financial advisor, independent recurring work timers, multi-document management, and integrated subscription modules.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
