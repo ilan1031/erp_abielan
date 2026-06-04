@@ -381,11 +381,6 @@ fun ThemePreviewCard(isDarkLabel: Boolean, isSelected: Boolean, onClick: () -> U
                 fontSize = 12.sp,
                 color = cardText
             )
-            Text(
-                text = if (isDarkLabel) "Dark Mode" else "Light Mode",
-                fontSize = 10.sp,
-                color = cardText.copy(alpha = 0.6f)
-            )
         }
     }
 }

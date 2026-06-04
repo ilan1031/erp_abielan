@@ -205,13 +205,7 @@ fun FinanceScreenModule(viewModel: ErpViewModel) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .then(
-                if (state.isListGridToggle) {
-                    Modifier.verticalScroll(pageScrollState)
-                } else {
-                    Modifier
-                }
-            )
+            .verticalScroll(pageScrollState)
             .nestedScroll(nestedScrollConnection)
     ) {
         // --- LEDGER HEADCONTROLLERS ---
@@ -295,51 +289,64 @@ fun FinanceScreenModule(viewModel: ErpViewModel) {
                     }
                 }
 
-                // Advanced Filter Icon button
-                IconButton(
+                // Advanced Filter Button
+                OutlinedButton(
                     onClick = { showAdvancedFilterDialog = true },
-                    modifier = Modifier
-                        .background(
-                            if (filtersActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.16f) 
-                            else (if (state.isDarkMode) MaterialTheme.colorScheme.surface else Color.LightGray.copy(alpha = 0.2f)), 
-                            RoundedCornerShape(8.dp)
-                        )
-                        .size(38.dp)
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = PaddingValues(0.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = if (filtersActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f) else (if (state.isDarkMode) MaterialTheme.colorScheme.surface else Color.White),
+                        contentColor = if (filtersActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                    ),
+                    border = BorderStroke(
+                        1.dp,
+                        if (filtersActive) MaterialTheme.colorScheme.primary else (if (state.isDarkMode) MaterialTheme.colorScheme.outlineVariant else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+                    ),
+                    modifier = Modifier.size(38.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Filled.FilterList,
-                        contentDescription = "Advanced Filters",
-                        tint = if (filtersActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                        contentDescription = "Filters",
                         modifier = Modifier.size(18.dp)
                     )
                 }
 
                 // Grid List Toggle button
-                IconButton(
+                OutlinedButton(
                     onClick = { viewModel.toggleListGrid() },
-                    modifier = Modifier
-                        .background(if (state.isDarkMode) MaterialTheme.colorScheme.surface else Color.LightGray.copy(alpha = 0.2f), RoundedCornerShape(8.dp))
-                        .size(38.dp)
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = PaddingValues(0.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = if (state.isDarkMode) MaterialTheme.colorScheme.surface else Color.White,
+                        contentColor = MaterialTheme.colorScheme.primary
+                    ),
+                    border = BorderStroke(
+                        1.dp,
+                        if (state.isDarkMode) MaterialTheme.colorScheme.outlineVariant else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                    ),
+                    modifier = Modifier.size(38.dp)
                 ) {
                     Icon(
                         imageVector = if (state.isListGridToggle) Icons.Filled.GridView else Icons.Filled.List,
-                        contentDescription = "Toggle Grid/List",
-                        tint = MaterialTheme.colorScheme.primary,
+                        contentDescription = "Toggle Layout",
                         modifier = Modifier.size(18.dp)
                     )
                 }
 
-                // Add Document button icon
-                IconButton(
+                // Add Document button
+                Button(
                     onClick = { showAddDocModal = true },
-                    modifier = Modifier
-                        .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(8.dp))
-                        .size(38.dp)
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = PaddingValues(0.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = Color.White
+                    ),
+                    modifier = Modifier.size(38.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Filled.Add, 
                         contentDescription = "Add Document", 
-                        tint = Color.White,
                         modifier = Modifier.size(18.dp)
                     )
                 }
@@ -611,51 +618,101 @@ fun FinanceScreenModule(viewModel: ErpViewModel) {
                 val screenWidth = configuration.screenWidthDp
                 val isWideScreen = screenWidth >= 600
                 val isCompactMobile = screenWidth < 400
-                LazyVerticalGrid(
-                    columns = if (isWideScreen) {
-                        GridCells.Adaptive(minSize = 260.dp)
-                    } else if (isCompactMobile) {
-                        GridCells.Fixed(1)
-                    } else {
-                        GridCells.Fixed(2)
-                    },
-                    modifier = Modifier.weight(1f).padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                val containerBg = if (state.isDarkMode) Color(0xFF131926).copy(alpha = 0.4f) else Color.White.copy(alpha = 0.6f)
+                val borderColor = if (state.isDarkMode) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.05f)
+
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                        .border(1.dp, borderColor, RoundedCornerShape(12.dp)),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = containerBg)
                 ) {
-                    items(sortedDocs) { doc ->
-                        DocumentItemCard(
-                            doc = doc,
-                            onCardClick = { selectedPdfDoc = doc },
-                            onDeleteClick = { viewModel.deleteDocument(doc) },
-                            onEditClick = { docToEdit = doc },
-                            onStatusUpdate = { newStatus -> viewModel.updateDocumentStatus(doc.id, newStatus) },
-                            onConvertToInvoice = { viewModel.convertQuoteToInvoice(doc.id) },
-                            isDarkMode = state.isDarkMode
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .wrapContentHeight()
+                            .padding(12.dp)
+                    ) {
+                        val numColumns = if (isWideScreen) 3 else if (isCompactMobile) 1 else 2
+                        val docChunks = paginatedDocs.chunked(numColumns)
+
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            docChunks.forEach { rowDocs ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                ) {
+                                    rowDocs.forEach { doc ->
+                                        Box(modifier = Modifier.weight(1f)) {
+                                            DocumentItemCard(
+                                                doc = doc,
+                                                onCardClick = { selectedPdfDoc = doc },
+                                                onDeleteClick = { viewModel.deleteDocument(doc) },
+                                                onEditClick = { docToEdit = doc },
+                                                onStatusUpdate = { newStatus -> viewModel.updateDocumentStatus(doc.id, newStatus) },
+                                                onConvertToInvoice = { viewModel.convertQuoteToInvoice(doc.id) },
+                                                isDarkMode = state.isDarkMode
+                                            )
+                                        }
+                                    }
+                                    val dummyCount = numColumns - rowDocs.size
+                                    if (dummyCount > 0) {
+                                        repeat(dummyCount) {
+                                            Spacer(modifier = Modifier.weight(1f))
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(14.dp))
+                        HorizontalDivider(color = borderColor, thickness = 1.dp)
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        // Table Pagination Control integrated inside the same card
+                        TablePaginationControl(
+                            currentPage = safeCurrentPage,
+                            totalPages = totalPages,
+                            totalItems = sortedDocs.size,
+                            itemsPerPage = itemsPerPage,
+                            startIndex = startIndex,
+                            endIndex = endIndex,
+                            onPageChange = { currentPage = it },
+                            onItemsPerPageChange = { 
+                                itemsPerPage = it 
+                                currentPage = 1
+                            },
+                            isDark = state.isDarkMode,
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
                         )
                     }
-                    item { Spacer(modifier = Modifier.height(24.dp)) }
                 }
             }
         }
-        if (state.isListGridToggle) {
-            Spacer(modifier = Modifier.height(100.dp))
-        }
+        Spacer(modifier = Modifier.height(100.dp))
     }
 
     // Add or Edit Document dialog modal
     if (showAddDocModal || docToEdit != null) {
         AddDocumentDialogForm(
             docToEdit = docToEdit,
-            onSubmit = { type, title, client, amt, notes, hrs, docNo, timerMins, status, issueStr, dueStr ->
+            viewModel = viewModel,
+            onSubmit = { type, title, client, amt, notes, hrs, docNo, timerMins, status, issueStr, dueStr, gstPct, baseAmt ->
                 val draftStatus = if (status.isNotBlank()) status else {
-                    when (type) {
-                        "INVOICE" -> "PENDING"
-                        "QUOTE" -> "OPEN"
-                        "BILL" -> "PENDING"
-                        "PO" -> "Approved"
-                        "SO" -> "Active"
-                        else -> "Pending"
+                    with(type) {
+                        when (this) {
+                            "INVOICE" -> "PENDING"
+                            "QUOTE" -> "OPEN"
+                            "BILL" -> "PENDING"
+                            "PO" -> "Approved"
+                            "SO" -> "Active"
+                            else -> "Pending"
+                        }
                     }
                 }
                 var issueTime: Long? = null
@@ -689,7 +746,9 @@ fun FinanceScreenModule(viewModel: ErpViewModel) {
                         customDocNumber = docNo,
                         timerDurationMinutes = timerMins,
                         customIssueDate = issueTime,
-                        customDueDate = dueTime
+                        customDueDate = dueTime,
+                        gstRatePct = gstPct,
+                        baseAmount = baseAmt
                     )
                 } else {
                     viewModel.addNewDocument(
@@ -703,7 +762,9 @@ fun FinanceScreenModule(viewModel: ErpViewModel) {
                         customDocNumber = docNo,
                         timerDurationMinutes = timerMins,
                         customIssueDate = issueTime,
-                        customDueDate = dueTime
+                        customDueDate = dueTime,
+                        gstRatePct = gstPct,
+                        baseAmount = baseAmt
                     )
                 }
                 showAddDocModal = false
@@ -1242,148 +1303,139 @@ fun TablePaginationControl(
     isDark: Boolean,
     modifier: Modifier = Modifier
 ) {
-    val textPrimaryColor = if (isDark) Color.White else Color.Black
     val textColor = if (isDark) Color.White.copy(alpha = 0.6f) else Color.Black.copy(alpha = 0.6f)
-    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
-    val isNarrow = configuration.screenWidthDp < 400
+    
+    BoxWithConstraints(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp, horizontal = 4.dp)
+    ) {
+        val availableWidth = maxWidth
+        val isVeryCompact = availableWidth < 360.dp
+        val isCompact = availableWidth < 500.dp
 
-    @Composable
-    fun ItemsPerPageSelector() {
         Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Text(
-                text = "Show:",
-                fontSize = 11.sp,
-                color = textColor,
-                fontWeight = FontWeight.Medium
-            )
-            listOf(5, 10, 20).forEach { size ->
-                val isSelected = itemsPerPage == size
-                val chipBg = if (isSelected) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    if (isDark) Color(0xFF131926).copy(alpha = 0.4f) else Color.White
-                }
-                val chipTextCol = if (isSelected) {
-                    Color.White
-                } else {
-                    if (isDark) Color.White.copy(alpha = 0.7f) else Color.Black.copy(alpha = 0.7f)
-                }
-                Box(
-                    modifier = Modifier
-                        .background(chipBg, RoundedCornerShape(4.dp))
-                        .border(
-                            1.dp,
-                            if (isSelected) Color.Transparent else (if (isDark) Color.White.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.08f)),
-                            RoundedCornerShape(4.dp)
-                        )
-                        .clickable { onItemsPerPageChange(size) }
-                        .padding(horizontal = 8.dp, vertical = 4.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = size.toString(),
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = chipTextCol
-                    )
-                }
-            }
-        }
-    }
-
-    @Composable
-    fun PageNavigationControls() {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            // Page ranges (e.g. 1-10 of 24)
-            Text(
-                text = "${if (totalItems == 0) 0 else startIndex + 1}-${endIndex} of ${totalItems}",
-                fontSize = 11.sp,
-                color = textColor,
-                fontWeight = FontWeight.Bold
-            )
-
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(2.dp)
-            ) {
-                // Previous Icon Button
-                IconButton(
-                    onClick = { if (currentPage > 1) onPageChange(currentPage - 1) },
-                    enabled = currentPage > 1,
-                    modifier = Modifier
-                        .size(28.dp)
-                        .background(
-                            if (isDark) Color(0xFF131926).copy(alpha = 0.4f) else Color.White,
-                            RoundedCornerShape(4.dp)
-                        )
-                        .border(
-                            1.dp,
-                            if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.05f),
-                            RoundedCornerShape(4.dp)
-                        )
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.ChevronLeft,
-                        contentDescription = "Previous Page",
-                        tint = if (currentPage > 1) MaterialTheme.colorScheme.primary else textColor.copy(alpha = 0.3f),
-                        modifier = Modifier.size(14.dp)
-                    )
-                }
-
-                // Next Icon Button
-                IconButton(
-                    onClick = { if (currentPage < totalPages) onPageChange(currentPage + 1) },
-                    enabled = currentPage < totalPages,
-                    modifier = Modifier
-                        .size(28.dp)
-                        .background(
-                            if (isDark) Color(0xFF131926).copy(alpha = 0.4f) else Color.White,
-                            RoundedCornerShape(4.dp)
-                        )
-                        .border(
-                            1.dp,
-                            if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.05f),
-                            RoundedCornerShape(4.dp)
-                        )
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.ChevronRight,
-                        contentDescription = "Next Page",
-                        tint = if (currentPage < totalPages) MaterialTheme.colorScheme.primary else textColor.copy(alpha = 0.3f),
-                        modifier = Modifier.size(14.dp)
-                    )
-                }
-            }
-        }
-    }
-
-    if (isNarrow) {
-        Column(
-            modifier = modifier
-                .fillMaxWidth()
-                .padding(vertical = 4.dp, horizontal = 4.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            ItemsPerPageSelector()
-            PageNavigationControls()
-        }
-    } else {
-        Row(
-            modifier = modifier
-                .fillMaxWidth()
-                .padding(vertical = 4.dp, horizontal = 4.dp),
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            ItemsPerPageSelector()
-            PageNavigationControls()
+            // Left region: Items Per Page Selector
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(if (isVeryCompact) 2.dp else 4.dp)
+            ) {
+                if (!isVeryCompact) {
+                    Text(
+                        text = "Show:",
+                        fontSize = if (isCompact) 10.sp else 11.sp,
+                        color = textColor,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+                
+                listOf(5, 10, 20).forEach { size ->
+                    val isSelected = itemsPerPage == size
+                    val chipBg = if (isSelected) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        if (isDark) Color(0xFF131926).copy(alpha = 0.4f) else Color.White
+                    }
+                    val chipTextCol = if (isSelected) {
+                        Color.White
+                    } else {
+                        if (isDark) Color.White.copy(alpha = 0.7f) else Color.Black.copy(alpha = 0.7f)
+                    }
+                    Box(
+                        modifier = Modifier
+                            .background(chipBg, RoundedCornerShape(4.dp))
+                            .border(
+                                1.dp,
+                                if (isSelected) Color.Transparent else (if (isDark) Color.White.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.08f)),
+                                RoundedCornerShape(4.dp)
+                            )
+                            .clickable { onItemsPerPageChange(size) }
+                            .padding(
+                                horizontal = if (isVeryCompact) 5.dp else if (isCompact) 6.dp else 8.dp, 
+                                vertical = if (isCompact) 3.dp else 4.dp
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = size.toString(),
+                            fontSize = if (isCompact) 10.sp else 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = chipTextCol
+                        )
+                    }
+                }
+            }
+
+            // Right region: Navigation details & Arrow actions
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(if (isVeryCompact) 4.dp else 8.dp)
+            ) {
+                // Page ranges
+                Text(
+                    text = if (isVeryCompact) "${if (totalItems == 0) 0 else startIndex + 1}-${endIndex}" else "${if (totalItems == 0) 0 else startIndex + 1}-${endIndex} of ${totalItems}",
+                    fontSize = if (isCompact) 10.sp else 11.sp,
+                    color = textColor,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    // Previous Icon Button
+                    IconButton(
+                        onClick = { if (currentPage > 1) onPageChange(currentPage - 1) },
+                        enabled = currentPage > 1,
+                        modifier = Modifier
+                            .size(if (isCompact) 24.dp else 28.dp)
+                            .background(
+                                if (isDark) Color(0xFF131926).copy(alpha = 0.4f) else Color.White,
+                                RoundedCornerShape(4.dp)
+                            )
+                            .border(
+                                1.dp,
+                                if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.05f),
+                                RoundedCornerShape(4.dp)
+                            )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.ChevronLeft,
+                            contentDescription = "Previous Page",
+                            tint = if (currentPage > 1) MaterialTheme.colorScheme.primary else textColor.copy(alpha = 0.3f),
+                            modifier = Modifier.size(if (isCompact) 12.dp else 14.dp)
+                        )
+                    }
+
+                    // Next Icon Button
+                    IconButton(
+                        onClick = { if (currentPage < totalPages) onPageChange(currentPage + 1) },
+                        enabled = currentPage < totalPages,
+                        modifier = Modifier
+                            .size(if (isCompact) 24.dp else 28.dp)
+                            .background(
+                                if (isDark) Color(0xFF131926).copy(alpha = 0.4f) else Color.White,
+                                RoundedCornerShape(4.dp)
+                            )
+                            .border(
+                                1.dp,
+                                if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.05f),
+                                RoundedCornerShape(4.dp)
+                            )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.ChevronRight,
+                            contentDescription = "Next Page",
+                            tint = if (currentPage < totalPages) MaterialTheme.colorScheme.primary else textColor.copy(alpha = 0.3f),
+                            modifier = Modifier.size(if (isCompact) 12.dp else 14.dp)
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -1958,6 +2010,7 @@ fun DatePickerFieldCompact(
 @Composable
 fun AddDocumentDialogForm(
     docToEdit: BusinessDocument? = null,
+    viewModel: ErpViewModel,
     onSubmit: (
         type: String,
         title: String,
@@ -1969,7 +2022,9 @@ fun AddDocumentDialogForm(
         timerMins: Int,
         status: String,
         issueDateStr: String,
-        dueDateStr: String
+        dueDateStr: String,
+        gstRatePct: Double,
+        baseAmount: Double
     ) -> Unit,
     onDismiss: () -> Unit,
     isDark: Boolean = true
@@ -1977,9 +2032,45 @@ fun AddDocumentDialogForm(
     var selectedType by remember { mutableStateOf(docToEdit?.type ?: "INVOICE") }
     var title by remember { mutableStateOf(docToEdit?.title ?: "") }
     var client by remember { mutableStateOf(docToEdit?.clientName ?: "") }
+    
+    // Support GST and base pricing natively
+    var gstRateSelected by remember { mutableStateOf(docToEdit?.gstRatePct ?: 18.0) }
+    var baseAmountText by remember { mutableStateOf(docToEdit?.baseAmount?.toString() ?: docToEdit?.totalAmount?.toString() ?: "") }
+    
+    val calculatedTotalAmount = remember(baseAmountText, gstRateSelected) {
+        val base = baseAmountText.toDoubleOrNull() ?: 0.0
+        val tax = base * (gstRateSelected / 100.0)
+        base + tax
+    }
+    
     var amountText by remember { mutableStateOf(docToEdit?.totalAmount?.toString() ?: "") }
+    
+    // Sync amountText when calculations run
+    LaunchedEffect(calculatedTotalAmount) {
+        if (calculatedTotalAmount > 0.0) {
+            amountText = String.format(java.util.Locale.US, "%.2f", calculatedTotalAmount)
+        }
+    }
+    
     var notes by remember { mutableStateOf(docToEdit?.notes ?: "") }
     var hourlyRateText by remember { mutableStateOf(docToEdit?.hourlyRate?.toString() ?: "500") }
+
+    val selectedItems = remember { androidx.compose.runtime.mutableStateListOf<Pair<com.example.data.ErpItem, Int>>() }
+    
+    LaunchedEffect(selectedItems.toList(), selectedType) {
+        if (selectedType == "QUOTE" && selectedItems.isNotEmpty()) {
+            val calcBase = selectedItems.sumOf { it.first.rate * it.second }
+            val calcGst = selectedItems.sumOf { (it.first.rate * it.second) * (it.first.gstRatePct / 100.0) }
+            val calcTotal = calcBase + calcGst
+            
+            baseAmountText = String.format(java.util.Locale.US, "%.2f", calcBase)
+            amountText = String.format(java.util.Locale.US, "%.2f", calcTotal)
+            if (calcBase > 0.0) {
+                // If the user hasn't tapped an exact tax slab, we can assign the blended rate. Let's do it.
+                gstRateSelected = (calcGst / calcBase) * 100.0
+            }
+        }
+    }
 
     // Expanded properties based on user review preview values
     var customDocNo by remember { mutableStateOf(docToEdit?.docNumber ?: "") }
@@ -2121,6 +2212,218 @@ fun AddDocumentDialogForm(
                     }
                 }
 
+                // --- 1. SWIPEABLE ITEM PRESETS CATALOG CAROUSEL ---
+                Spacer(modifier = Modifier.height(10.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = if (selectedType == "QUOTE") "Build Multi-Item Quote Roster" else "Select from ERP Preset Item Catalog", 
+                        fontSize = 11.sp, 
+                        fontWeight = FontWeight.Black, 
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = if (selectedType == "QUOTE") "Tap to add / increment" else "Tap to pre-fill", 
+                        fontSize = 9.sp, 
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+                
+                val itemScrollState = rememberScrollState()
+                val itemsList by viewModel.items.collectAsState()
+                
+                if (itemsList.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f), RoundedCornerShape(12.dp))
+                            .padding(12.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("No items available in Catalog. Go to Inventory and seed presets.", fontSize = 11.sp, color = MaterialTheme.colorScheme.secondary)
+                    }
+                } else {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(itemScrollState)
+                            .padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        itemsList.forEach { pItem ->
+                            val qtyInQuote = selectedItems.firstOrNull { it.first.id == pItem.id }?.second ?: 0
+                            val isSelected = if (selectedType == "QUOTE") qtyInQuote > 0 else title == pItem.name
+                            Card(
+                                modifier = Modifier
+                                    .width(170.dp)
+                                    .clickable {
+                                        if (selectedType == "QUOTE") {
+                                            val existingIdx = selectedItems.indexOfFirst { it.first.id == pItem.id }
+                                            if (existingIdx >= 0) {
+                                                val (existingItem, existingQty) = selectedItems[existingIdx]
+                                                selectedItems[existingIdx] = Pair(existingItem, existingQty + 1)
+                                            } else {
+                                                selectedItems.add(Pair(pItem, 1))
+                                            }
+                                            if (title.isBlank() || title == "") {
+                                                title = "Multi-Item Estimate / Quote"
+                                            }
+                                        } else {
+                                            title = pItem.name
+                                            baseAmountText = pItem.rate.toString()
+                                            gstRateSelected = pItem.gstRatePct
+                                            hourlyRateText = pItem.rate.toString()
+                                            notes = pItem.description
+                                        }
+                                    },
+                                colors = CardDefaults.cardColors(
+                                    containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                                ),
+                                shape = RoundedCornerShape(12.dp),
+                                border = if (isSelected) androidx.compose.foundation.BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary) else null
+                            ) {
+                                Column(modifier = Modifier.padding(10.dp)) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = pItem.name,
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            maxLines = 1,
+                                            modifier = Modifier.weight(1f),
+                                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                        )
+                                        if (qtyInQuote > 0 && selectedType == "QUOTE") {
+                                            Box(
+                                                modifier = Modifier
+                                                    .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(4.dp))
+                                                    .padding(horizontal = 4.dp, vertical = 2.dp)
+                                            ) {
+                                                Text("x$qtyInQuote", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                            }
+                                        }
+                                    }
+                                    Text(pItem.category, fontSize = 9.sp, color = MaterialTheme.colorScheme.secondary)
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text("₹${String.format(java.util.Locale.US, "%,.0f", pItem.rate)}", fontSize = 11.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
+                                        Box(
+                                            modifier = Modifier
+                                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), RoundedCornerShape(4.dp))
+                                                .padding(horizontal = 4.dp, vertical = 2.dp)
+                                        ) {
+                                            Text("GST ${pItem.gstRatePct.toInt()}%", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Interactive listed items row specifically for multi-item quotes Setup
+                if (selectedType == "QUOTE") {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        text = "Added Quote Items List", 
+                        fontSize = 11.sp, 
+                        fontWeight = FontWeight.Bold, 
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    
+                    if (selectedItems.isEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.04f), RoundedCornerShape(12.dp))
+                                .padding(12.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "Roster holds 0 items. Click catalog items above to add.", 
+                                fontSize = 11.sp, 
+                                color = MaterialTheme.colorScheme.secondary
+                            )
+                        }
+                    } else {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            selectedItems.forEachIndexed { index, (item, qty) ->
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth().padding(10.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(item.name, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                            Text("Rate: ₹${String.format(java.util.Locale.US, "%,.2f", item.rate)} (+${item.gstRatePct.toInt()}% GST)", fontSize = 9.sp, color = MaterialTheme.colorScheme.secondary)
+                                        }
+                                        
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                        ) {
+                                            IconButton(
+                                                onClick = {
+                                                    if (qty > 1) {
+                                                        selectedItems[index] = Pair(item, qty - 1)
+                                                    } else {
+                                                        selectedItems.removeAt(index)
+                                                    }
+                                                },
+                                                modifier = Modifier.size(24.dp).background(MaterialTheme.colorScheme.surface, RoundedCornerShape(6.dp))
+                                            ) {
+                                                Icon(Icons.Filled.Remove, contentDescription = null, modifier = Modifier.size(12.dp))
+                                            }
+                                            
+                                            Text(qty.toString(), fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 4.dp))
+                                            
+                                            IconButton(
+                                                onClick = {
+                                                    selectedItems[index] = Pair(item, qty + 1)
+                                                },
+                                                modifier = Modifier.size(24.dp).background(MaterialTheme.colorScheme.surface, RoundedCornerShape(6.dp))
+                                            ) {
+                                                Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(12.dp))
+                                            }
+                                            
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            
+                                            IconButton(
+                                                onClick = {
+                                                    selectedItems.removeAt(index)
+                                                },
+                                                modifier = Modifier.size(24.dp)
+                                            ) {
+                                                Icon(Icons.Filled.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(14.dp))
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
                 Spacer(modifier = Modifier.height(14.dp))
 
                 val textFieldColors = OutlinedTextFieldDefaults.colors(
@@ -2176,7 +2479,101 @@ fun AddDocumentDialogForm(
                         modifier = Modifier.weight(1f)
                     )
 
-                    if (selectedType == "SO") {
+                    OutlinedTextField(
+                        value = baseAmountText,
+                        onValueChange = { 
+                            baseAmountText = it
+                        },
+                        label = { Text("Base Price (₹)", fontSize = 11.sp) },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        colors = textFieldColors,
+                        shape = RoundedCornerShape(25.dp),
+                        textStyle = androidx.compose.ui.text.TextStyle(fontSize = 12.sp),
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                // --- GST TAX SELECTION ROW NATIVE IN ALL FORMS ---
+                Spacer(modifier = Modifier.height(14.dp))
+                Text("Select GST Slabs", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    listOf(0.0, 5.0, 12.0, 18.0, 28.0).forEach { rate ->
+                        val isSelected = gstRateSelected == rate
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .background(
+                                    if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
+                                    RoundedCornerShape(12.dp)
+                                )
+                                .clickable { gstRateSelected = rate }
+                                .padding(vertical = 8.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                "${rate.toInt()}%",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
+                }
+
+                // --- LIVE GST TAX OUTLAY CALCULATION SUMMARY CARD ---
+                Spacer(modifier = Modifier.height(12.dp))
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f)),
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("Base Price Amount:", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            val baseVal = baseAmountText.toDoubleOrNull() ?: 0.0
+                            Text("₹${String.format(java.util.Locale.US, "%,.2f", baseVal)}", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("GST Selected Slab:", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("${gstRateSelected.toInt()}%", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("Applicable Tax (CGST+SGST):", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            val baseVal = baseAmountText.toDoubleOrNull() ?: 0.0
+                            val taxVal = baseVal * (gstRateSelected / 100.0)
+                            Text("₹${String.format(java.util.Locale.US, "%,.2f", taxVal)}", fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                        }
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp), color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("Calculated Total Amount:", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary)
+                            Text("₹${String.format(java.util.Locale.US, "%,.2f", calculatedTotalAmount)}", fontSize = 14.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
+                        }
+                    }
+                }
+
+                if (selectedType == "SO") {
+                    Spacer(modifier = Modifier.height(14.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
                         OutlinedTextField(
                             value = hourlyRateText,
                             onValueChange = { hourlyRateText = it },
@@ -2187,11 +2584,11 @@ fun AddDocumentDialogForm(
                             textStyle = androidx.compose.ui.text.TextStyle(fontSize = 12.sp),
                             modifier = Modifier.weight(1f)
                         )
-                    } else {
+
                         OutlinedTextField(
-                            value = amountText,
-                            onValueChange = { amountText = it },
-                            label = { Text("Billable Amt (₹)", fontSize = 11.sp) },
+                            value = timerMinsText,
+                            onValueChange = { timerMinsText = it },
+                            label = { Text("Duration Limit (mins)", fontSize = 11.sp) },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             colors = textFieldColors,
                             shape = RoundedCornerShape(25.dp),
@@ -2199,20 +2596,6 @@ fun AddDocumentDialogForm(
                             modifier = Modifier.weight(1f)
                         )
                     }
-                }
-
-                if (selectedType == "SO") {
-                    Spacer(modifier = Modifier.height(14.dp))
-                    OutlinedTextField(
-                        value = timerMinsText,
-                        onValueChange = { timerMinsText = it },
-                        label = { Text("Limit/Duration Const. (mins)", fontSize = 11.sp) },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        colors = textFieldColors,
-                        shape = RoundedCornerShape(25.dp),
-                        textStyle = androidx.compose.ui.text.TextStyle(fontSize = 12.sp),
-                        modifier = Modifier.fillMaxWidth()
-                    )
                 }
 
                 Spacer(modifier = Modifier.height(14.dp))
@@ -2313,21 +2696,49 @@ fun AddDocumentDialogForm(
                         contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp),
                         onClick = {
                             if (title.isNotBlank() && client.isNotBlank()) {
-                                val amt = amountText.toDoubleOrNull() ?: 0.0
+                                val baseVal = baseAmountText.toDoubleOrNull() ?: 0.0
+                                val calculatedAmt = if (baseVal > 0.0) calculatedTotalAmount else (amountText.toDoubleOrNull() ?: 0.0)
                                 val hrs = hourlyRateText.toDoubleOrNull() ?: 0.0
                                 val mins = timerMinsText.toIntOrNull() ?: 0
+                                
+                                val formattedNotes = if (selectedType == "QUOTE" && selectedItems.isNotEmpty()) {
+                                    val sb = StringBuilder()
+                                    sb.append("Multi-Item Estimate Details:\n")
+                                    selectedItems.forEach { (item, qty) ->
+                                        val lineBase = item.rate * qty
+                                        val lineTax = lineBase * (item.gstRatePct / 100.0)
+                                        val lineTotal = lineBase + lineTax
+                                        sb.append("- ${item.name} ($qty units) @ ₹${String.format(java.util.Locale.US, "%,.2f", item.rate)} (+${item.gstRatePct.toInt()}% GST)\n")
+                                        sb.append("  Subtotal: ₹${String.format(java.util.Locale.US, "%,.2f", lineBase)} | Total: ₹${String.format(java.util.Locale.US, "%,.2f", lineTotal)}\n")
+                                    }
+                                    sb.append("\nSummary:")
+                                    val calcBase = selectedItems.sumOf { it.first.rate * it.second }
+                                    val calcGst = selectedItems.sumOf { (it.first.rate * it.second) * (it.first.gstRatePct / 100.0) }
+                                    sb.append("\n• Total Base: ₹${String.format(java.util.Locale.US, "%,.2f", calcBase)}")
+                                    sb.append("\n• Total GST: ₹${String.format(java.util.Locale.US, "%,.2f", calcGst)}")
+                                    sb.append("\n• Grand Estimated Total: ₹${String.format(java.util.Locale.US, "%,.2f", calcBase + calcGst)}")
+                                    if (notes.isNotBlank() && !notes.startsWith("Multi-Item Estimate Details")) {
+                                        sb.append("\n\nVendor Remarks:\n").append(notes)
+                                    }
+                                    sb.toString()
+                                } else {
+                                    notes
+                                }
+
                                 onSubmit(
                                     selectedType,
                                     title,
                                     client,
-                                    amt,
-                                    notes,
+                                    calculatedAmt,
+                                    formattedNotes,
                                     hrs,
                                     customDocNo,
                                     mins,
                                     customStatus,
                                     customIssueDateStr,
-                                    customDueDateStr
+                                    customDueDateStr,
+                                    gstRateSelected,
+                                    baseVal
                                 )
                             }
                         }

@@ -93,6 +93,7 @@ class ErpViewModel(application: Application) : AndroidViewModel(application) {
     // Room Database data flows
     val documents: StateFlow<List<BusinessDocument>>
     val recurringSOs: StateFlow<List<RecurringSO>>
+    val items: StateFlow<List<ErpItem>>
 
     private var timerJob: Job? = null
     private var dbPersistCounter = 0
@@ -104,7 +105,7 @@ class ErpViewModel(application: Application) : AndroidViewModel(application) {
             pendingTabFromIntent = null
         }
         val database = AppDatabase.getDatabase(application)
-        repository = DocumentRepository(database.documentDao())
+        repository = DocumentRepository(database.documentDao(), database.itemDao())
 
         // Load setup preferences on startup
         val sharedPrefs = application.getSharedPreferences("abielan_setup_prefs", Context.MODE_PRIVATE)
@@ -152,6 +153,13 @@ class ErpViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 }
             }
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = emptyList()
+            )
+
+        items = repository.allItems
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(5000),
@@ -294,6 +302,71 @@ class ErpViewModel(application: Application) : AndroidViewModel(application) {
             )
         )
         initialRecur.forEach { repository.insertRecurringSO(it) }
+
+        // Seed Item Catalog presets
+        val initialItems = listOf(
+            ErpItem(
+                name = "Cloud Server Infrastructure Setup",
+                rate = 145000.0,
+                gstRatePct = 18.0,
+                category = "Service",
+                description = "Secure AWS deployment, load balancing, and private database configurations",
+                trackStock = false
+            ),
+            ErpItem(
+                name = "Custom Enterprise Software License",
+                rate = 85000.0,
+                gstRatePct = 18.0,
+                category = "Product",
+                description = "Annual standard access license for up to 50 active administrative terminals",
+                trackStock = false
+            ),
+            ErpItem(
+                name = "Strategic AI Model Consultation",
+                rate = 1200.0,
+                gstRatePct = 18.0,
+                category = "Service",
+                description = "Hourly consultation rate for machine learning and training pipeline planning",
+                trackStock = false
+            ),
+            ErpItem(
+                name = "DLF Office Parks Rent",
+                rate = 45000.0,
+                gstRatePct = 18.0,
+                category = "Goods",
+                description = "Wing-B commercial layout space lease",
+                trackStock = false
+            ),
+            ErpItem(
+                name = "Virtual GPU Server Hosting",
+                rate = 30000.0,
+                gstRatePct = 12.0,
+                category = "Product",
+                description = "Subscription for high-throughput computation machines",
+                trackStock = true,
+                stockQuantity = 4,
+                lowStockThreshold = 5
+            ),
+            ErpItem(
+                name = "Procured Office IT Hardware Accessories",
+                rate = 65000.0,
+                gstRatePct = 18.0,
+                category = "Goods",
+                description = "Printers, monitors, mechanical keyboard adapters",
+                trackStock = true,
+                stockQuantity = 45,
+                lowStockThreshold = 10
+            ),
+            ErpItem(
+                name = "Corporate Bookkeeping Consultation",
+                rate = 600.0,
+                gstRatePct = 5.0,
+                category = "Service",
+                description = "Accurate multi-ledger audit review feeds",
+                trackStock = false
+            )
+        )
+        initialItems.forEach { repository.insertItem(it) }
     }
 
     private fun startTimerLoop() {
@@ -990,7 +1063,9 @@ class ErpViewModel(application: Application) : AndroidViewModel(application) {
         customDocNumber: String = "",
         timerDurationMinutes: Int = 0,
         customIssueDate: Long? = null,
-        customDueDate: Long? = null
+        customDueDate: Long? = null,
+        gstRatePct: Double = 0.0,
+        baseAmount: Double = 0.0
     ) {
         viewModelScope.launch {
             val calendar = Calendar.getInstance()
@@ -1029,7 +1104,9 @@ class ErpViewModel(application: Application) : AndroidViewModel(application) {
                 status = status,
                 hourlyRate = hourlyRate,
                 timerDurationMinutes = timerDurationMinutes,
-                notes = notes
+                notes = notes,
+                gstRatePct = gstRatePct,
+                baseAmount = baseAmount
             )
             repository.insertDocument(doc)
             _uiState.update { 
@@ -1061,7 +1138,9 @@ class ErpViewModel(application: Application) : AndroidViewModel(application) {
         customDocNumber: String = "",
         timerDurationMinutes: Int = 0,
         customIssueDate: Long? = null,
-        customDueDate: Long? = null
+        customDueDate: Long? = null,
+        gstRatePct: Double = 0.0,
+        baseAmount: Double = 0.0
     ) {
         viewModelScope.launch {
             val doc = repository.getDocumentById(docId) ?: return@launch
@@ -1076,11 +1155,77 @@ class ErpViewModel(application: Application) : AndroidViewModel(application) {
                 docNumber = if (customDocNumber.isNotBlank()) customDocNumber else doc.docNumber,
                 timerDurationMinutes = timerDurationMinutes,
                 issueDate = customIssueDate ?: doc.issueDate,
-                dueDate = customDueDate ?: doc.dueDate
+                dueDate = customDueDate ?: doc.dueDate,
+                gstRatePct = gstRatePct,
+                baseAmount = baseAmount
             )
             repository.updateDocument(updated)
             _uiState.update {
                 it.copy(systemNotifications = listOf("Document '${doc.docNumber}' updated successfully.") + it.systemNotifications)
+            }
+        }
+    }
+
+    // --- ERP Item preset catalog CRUD Actions ---
+
+    fun createNewItem(
+        name: String,
+        rate: Double,
+        gstRatePct: Double,
+        category: String,
+        description: String,
+        trackStock: Boolean = false,
+        stockQuantity: Int = 0,
+        lowStockThreshold: Int = 5
+    ) {
+        viewModelScope.launch {
+            val item = ErpItem(
+                name = name,
+                rate = rate,
+                gstRatePct = gstRatePct,
+                category = category,
+                description = description,
+                trackStock = trackStock,
+                stockQuantity = stockQuantity,
+                lowStockThreshold = lowStockThreshold
+            )
+            repository.insertItem(item)
+            _uiState.update {
+                val stockMsg = if (trackStock) " with stock tracking ($stockQuantity units)" else " (Non-Stock)"
+                it.copy(systemNotifications = listOf("Preset Item added: $name (rate ₹$rate, GST ${gstRatePct}%)$stockMsg") + it.systemNotifications)
+            }
+        }
+    }
+
+    fun adjustItemStock(itemId: Int, newStock: Int) {
+        viewModelScope.launch {
+            val itemsList = items.value
+            val foundItem = itemsList.firstOrNull { it.id == itemId } ?: return@launch
+            val updated = foundItem.copy(stockQuantity = newStock.coerceAtLeast(0))
+            repository.updateItem(updated)
+            
+            if (updated.trackStock && updated.stockQuantity <= updated.lowStockThreshold) {
+                _uiState.update {
+                    it.copy(systemNotifications = listOf("ALERT: Low stock for ${updated.name}! Stock holds ${updated.stockQuantity} (Threshold: ${updated.lowStockThreshold})") + it.systemNotifications)
+                }
+            }
+        }
+    }
+
+    fun updateItem(item: ErpItem) {
+        viewModelScope.launch {
+            repository.updateItem(item)
+            _uiState.update {
+                it.copy(systemNotifications = listOf("Item preset updated: ${item.name}") + it.systemNotifications)
+            }
+        }
+    }
+
+    fun removeItem(item: ErpItem) {
+        viewModelScope.launch {
+            repository.deleteItem(item)
+            _uiState.update {
+                it.copy(systemNotifications = listOf("Item preset deleted: ${item.name}") + it.systemNotifications)
             }
         }
     }

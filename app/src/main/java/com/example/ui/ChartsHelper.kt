@@ -1184,38 +1184,38 @@ fun CandlestickHeaderWidget(
 
         Spacer(modifier = Modifier.height(6.dp))
 
-        // Metrics breakdown row (O, H, L, V mapped to Start, Peak, Floor, Tx Vol) to start and end edges
+        // Metrics breakdown row (O, H, L, V mapped to Start, Peak, Floor, Vol) to start and end edges
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             val metrics = listOf(
                 "Start: ₹" to activeCandle.open,
                 "Peak: ₹" to activeCandle.high,
                 "Floor: ₹" to activeCandle.low,
-                "Tx Vol: " to activeCandle.volume
+                "Vol: " to activeCandle.volume
             )
 
             metrics.forEachIndexed { i, (labelPrefix, valDouble) ->
-                val metricText = if (i == 3) {
-                    "$labelPrefix${String.format(java.util.Locale.US, "%,.0f", valDouble)}"
-                } else {
-                    "$labelPrefix${String.format(java.util.Locale.US, "%,.0f", valDouble)}"
-                }
+                val metricText = "$labelPrefix${String.format(java.util.Locale.US, "%,.0f", valDouble)}"
                 
                 Box(
                     modifier = Modifier
+                        .weight(1f)
                         .background(
                             MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
                             RoundedCornerShape(6.dp)
                         )
-                        .padding(horizontal = 6.dp, vertical = 3.dp)
+                        .padding(horizontal = 4.dp, vertical = 4.dp),
+                    contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = metricText,
-                        fontSize = 9.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 8.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        softWrap = false,
                         color = MaterialTheme.colorScheme.secondary
                     )
                 }

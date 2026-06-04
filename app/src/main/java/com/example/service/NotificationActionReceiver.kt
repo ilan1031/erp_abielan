@@ -62,7 +62,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
                     } else {
                         // Fallback DB operation if ViewModel is inactive
                         val db = AppDatabase.getDatabase(context)
-                        val repository = DocumentRepository(db.documentDao())
+                        val repository = DocumentRepository(db.documentDao(), db.itemDao())
                         CoroutineScope(Dispatchers.IO).launch {
                             val job = repository.getRecurringSOById(jobId)
                             if (job != null) {
@@ -85,7 +85,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
                     } else {
                         // Fallback DB operation if ViewModel is inactive
                         val db = AppDatabase.getDatabase(context)
-                        val repository = DocumentRepository(db.documentDao())
+                        val repository = DocumentRepository(db.documentDao(), db.itemDao())
                         CoroutineScope(Dispatchers.IO).launch {
                             val job = repository.getRecurringSOById(jobId)
                             if (job != null) {

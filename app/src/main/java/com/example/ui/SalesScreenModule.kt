@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -51,12 +52,96 @@ fun SalesScreenModule(viewModel: ErpViewModel) {
 
     val mainPadding = if (isCompactMobile) 10.dp else 16.dp
 
+    var activeSalesTab by remember { mutableStateOf("orders") } // "orders" or "inventory"
+
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(scrollState)
-            .padding(mainPadding)
+        modifier = Modifier.fillMaxSize()
     ) {
+        // Broad Header row with the beautiful pill sub-tab selector pinned at the top
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = mainPadding, vertical = 12.dp)
+                .background(
+                    if (state.isDarkMode) Color(0xFF1E293B).copy(alpha = 0.5f) else Color(0xFFF1F5F9),
+                    RoundedCornerShape(12.dp)
+                )
+                .padding(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(
+                        if (activeSalesTab == "orders") MaterialTheme.colorScheme.primary 
+                        else Color.Transparent
+                    )
+                    .clickable { activeSalesTab = "orders" }
+                    .padding(vertical = 10.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Filled.Work,
+                        contentDescription = null,
+                        modifier = Modifier.size(15.dp),
+                        tint = if (activeSalesTab == "orders") Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "Sales Orders (SO)",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (activeSalesTab == "orders") Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(
+                        if (activeSalesTab == "inventory") MaterialTheme.colorScheme.primary 
+                        else Color.Transparent
+                    )
+                    .clickable { activeSalesTab = "inventory" }
+                    .padding(vertical = 10.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Filled.Inventory,
+                        contentDescription = null,
+                        modifier = Modifier.size(15.dp),
+                        tint = if (activeSalesTab == "inventory") Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "Inventory & Tax Hub",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (activeSalesTab == "inventory") Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+
+        // AnimatedContent rendering each view
+        AnimatedContent(
+            targetState = activeSalesTab,
+            label = "SalesTabAnimation",
+            modifier = Modifier.weight(1f)
+        ) { tabState ->
+            when (tabState) {
+                "orders" -> {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(scrollState)
+                            .padding(start = mainPadding, end = mainPadding, bottom = mainPadding)
+                    ) {
         // --- SCREEN TITLE ---
         Text(
             text = "Autonomous Work Sales Orders (SO)",
@@ -846,6 +931,13 @@ fun SalesScreenModule(viewModel: ErpViewModel) {
                             }
                         }
                     }
+                }
+            }
+        }
+                    }
+                }
+                "inventory" -> {
+                    InventoryScreenModule(viewModel)
                 }
             }
         }
