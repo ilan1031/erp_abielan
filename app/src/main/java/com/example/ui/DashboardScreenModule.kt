@@ -217,126 +217,62 @@ fun DashboardScreenModule(viewModel: ErpViewModel) {
                     HorizontalDivider(color = if (isDark) Color(0xFFFFFFFF).copy(alpha = 0.15f) else Color(0xFFE2E8F0))
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    if (isCompactMobile) {
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(Icons.Filled.TrendingUp, contentDescription = null, tint = SuccessGreen, modifier = Modifier.size(10.dp))
-                                        Spacer(modifier = Modifier.width(3.dp))
-                                        Text("Revenues", fontSize = 10.sp, color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold, maxLines = 1)
-                                    }
-                                    Text(
-                                        text = "₹${String.format(java.util.Locale.US, "%,.0f", revenue)}",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 12.sp,
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        maxLines = 1
-                                    )
-                                }
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(Icons.Filled.TrendingDown, contentDescription = null, tint = OverdueRed, modifier = Modifier.size(10.dp))
-                                        Spacer(modifier = Modifier.width(3.dp))
-                                        Text("OpEx Bills", fontSize = 10.sp, color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold, maxLines = 1)
-                                    }
-                                    Text(
-                                        text = "₹${String.format(java.util.Locale.US, "%,.0f", expense)}",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 12.sp,
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        maxLines = 1
-                                    )
-                                }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1.1f)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Filled.TrendingUp, contentDescription = null, tint = SuccessGreen, modifier = Modifier.size(10.dp))
+                                Spacer(modifier = Modifier.width(3.dp))
+                                Text("Revenues", fontSize = 10.sp, color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold, maxLines = 1)
                             }
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text("Capital Yield", fontSize = 10.sp, color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold, maxLines = 1)
-                                    val yieldPercent = if (expense > 0.0) {
-                                        try {
-                                            val yp = ((revenue - expense) / expense * 100)
-                                            if (yp.isNaN() || yp.isInfinite()) 100 else yp.toInt()
-                                        } catch (e: Exception) {
-                                            100
-                                        }
-                                    } else {
-                                        100
-                                    }
-                                    Text(
-                                        text = if (yieldPercent >= 0) "+$yieldPercent%" else "$yieldPercent%",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 12.sp,
-                                        color = if (yieldPercent >= 0) SuccessGreen else OverdueRed,
-                                        maxLines = 1
-                                    )
-                                }
-                            }
+                            Text(
+                                text = "₹${String.format(java.util.Locale.US, "%,.0f", revenue)}",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1
+                            )
                         }
-                    } else {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Column(modifier = Modifier.weight(1.1f)) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Filled.TrendingUp, contentDescription = null, tint = SuccessGreen, modifier = Modifier.size(10.dp))
-                                    Spacer(modifier = Modifier.width(3.dp))
-                                    Text("Revenues", fontSize = 11.sp, color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold, maxLines = 1)
-                                }
-                                Text(
-                                    text = "₹${String.format(java.util.Locale.US, "%,.0f", revenue)}",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    maxLines = 1
-                                )
+                        
+                        Column(modifier = Modifier.weight(1.1f)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Filled.TrendingDown, contentDescription = null, tint = OverdueRed, modifier = Modifier.size(10.dp))
+                                Spacer(modifier = Modifier.width(3.dp))
+                                Text("OpEx Bills", fontSize = 10.sp, color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold, maxLines = 1)
                             }
-                            
-                            Column(modifier = Modifier.weight(1.1f)) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Filled.TrendingDown, contentDescription = null, tint = OverdueRed, modifier = Modifier.size(10.dp))
-                                    Spacer(modifier = Modifier.width(3.dp))
-                                    Text("OpEx Bills", fontSize = 11.sp, color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold, maxLines = 1)
-                                }
-                                Text(
-                                    text = "₹${String.format(java.util.Locale.US, "%,.0f", expense)}",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    maxLines = 1
-                                )
-                            }
+                            Text(
+                                text = "₹${String.format(java.util.Locale.US, "%,.0f", expense)}",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1
+                            )
+                        }
 
-                            Column(
-                                modifier = Modifier.weight(1f),
-                                horizontalAlignment = Alignment.End
-                            ) {
-                                Text("Capital Yield", fontSize = 11.sp, color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold, maxLines = 1)
-                                val yieldPercent = if (expense > 0.0) {
-                                    try {
-                                        val yp = ((revenue - expense) / expense * 100)
-                                        if (yp.isNaN() || yp.isInfinite()) 100 else yp.toInt()
-                                    } catch (e: Exception) {
-                                        100
-                                    }
-                                } else {
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            horizontalAlignment = Alignment.End
+                        ) {
+                            Text("Capital Yield", fontSize = 10.sp, color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold, maxLines = 1)
+                            val yieldPercent = if (expense > 0.0) {
+                                try {
+                                    val yp = ((revenue - expense) / expense * 100)
+                                    if (yp.isNaN() || yp.isInfinite()) 100 else yp.toInt()
+                                } catch (e: Exception) {
                                     100
                                 }
-                                Text(
-                                    text = if (yieldPercent >= 0) "+$yieldPercent%" else "$yieldPercent%",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp,
-                                    color = if (yieldPercent >= 0) SuccessGreen else OverdueRed,
-                                    maxLines = 1
-                                )
+                            } else {
+                                100
                             }
+                            Text(
+                                text = if (yieldPercent >= 0) "+$yieldPercent%" else "$yieldPercent%",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                color = if (yieldPercent >= 0) SuccessGreen else OverdueRed,
+                                maxLines = 1
+                            )
                         }
                     }
                 }
@@ -392,90 +328,44 @@ fun DashboardScreenModule(viewModel: ErpViewModel) {
                     HorizontalDivider(color = if (isDark) Color(0xFFFFFFFF).copy(alpha = 0.15f) else Color(0xFFE2E8F0))
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    if (isCompactMobile) {
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text("Active Clients", fontSize = 10.sp, color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold, maxLines = 1)
-                                    Text(
-                                        text = if (activeBorrowers > 0) "$activeBorrowers Clients" else "No Active Lib",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 12.sp,
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        maxLines = 1
-                                    )
-                                }
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text("Petty Cash", fontSize = 10.sp, color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold, maxLines = 1)
-                                    Text(
-                                        text = "₹${String.format(java.util.Locale.US, "%,.0f", pettyCash)}",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 12.sp,
-                                        color = SuccessGreen,
-                                        maxLines = 1
-                                    )
-                                }
-                            }
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text("External Debt", fontSize = 10.sp, color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold, maxLines = 1)
-                                    Text(
-                                        text = "₹${String.format(java.util.Locale.US, "%,.0f", debt)}",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 12.sp,
-                                        color = OverdueRed,
-                                        maxLines = 1
-                                    )
-                                }
-                            }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1.1f)) {
+                            Text("Active Clients", fontSize = 10.sp, color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold, maxLines = 1)
+                            Text(
+                                text = if (activeBorrowers > 0) "$activeBorrowers Clients" else "No Active Lib",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1
+                            )
                         }
-                    } else {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Column(modifier = Modifier.weight(1.1f)) {
-                                Text("Active Clients", fontSize = 11.sp, color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold, maxLines = 1)
-                                Text(
-                                    text = if (activeBorrowers > 0) "$activeBorrowers Clients" else "No Active Lib",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    maxLines = 1
-                                )
-                            }
-                            
-                            Column(modifier = Modifier.weight(1.1f)) {
-                                Text("Petty Cash", fontSize = 11.sp, color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold, maxLines = 1)
-                                Text(
-                                    text = "₹${String.format(java.util.Locale.US, "%,.0f", pettyCash)}",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp,
-                                    color = SuccessGreen,
-                                    maxLines = 1
-                                )
-                            }
+                        
+                        Column(modifier = Modifier.weight(1.1f)) {
+                            Text("Petty Cash", fontSize = 10.sp, color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold, maxLines = 1)
+                            Text(
+                                text = "₹${String.format(java.util.Locale.US, "%,.0f", pettyCash)}",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                color = SuccessGreen,
+                                maxLines = 1
+                            )
+                        }
 
-                            Column(
-                                modifier = Modifier.weight(1f),
-                                horizontalAlignment = Alignment.End
-                            ) {
-                                Text("External Debt", fontSize = 11.sp, color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold, maxLines = 1)
-                                Text(
-                                    text = "₹${String.format(java.util.Locale.US, "%,.0f", debt)}",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp,
-                                    color = OverdueRed,
-                                    maxLines = 1
-                                )
-                            }
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            horizontalAlignment = Alignment.End
+                        ) {
+                            Text("External Debt", fontSize = 10.sp, color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold, maxLines = 1)
+                            Text(
+                                text = "₹${String.format(java.util.Locale.US, "%,.0f", debt)}",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                color = OverdueRed,
+                                maxLines = 1
+                            )
                         }
                     }
                 }
@@ -531,90 +421,44 @@ fun DashboardScreenModule(viewModel: ErpViewModel) {
                     HorizontalDivider(color = if (isDark) Color(0xFFFFFFFF).copy(alpha = 0.15f) else Color(0xFFE2E8F0))
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    if (isCompactMobile) {
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text("PAR Ratio", fontSize = 10.sp, color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold, maxLines = 1)
-                                    Text(
-                                        text = "${String.format(java.util.Locale.US, "%.2f", parRatio)}%",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 12.sp,
-                                        color = if (parRatio > 10.0) OverdueRed else SuccessGreen,
-                                        maxLines = 1
-                                    )
-                                }
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text("Recovery Rate", fontSize = 10.sp, color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold, maxLines = 1)
-                                    Text(
-                                        text = "${String.format(java.util.Locale.US, "%.2f", recoveryRate)}%",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 12.sp,
-                                        color = SuccessGreen,
-                                        maxLines = 1
-                                    )
-                                }
-                            }
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text("Unsettled Dues", fontSize = 10.sp, color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold, maxLines = 1)
-                                    Text(
-                                        text = "₹${String.format(java.util.Locale.US, "%,.0f", credit + debt)}",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 12.sp,
-                                        color = AccentGold,
-                                        maxLines = 1
-                                    )
-                                }
-                            }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1.1f)) {
+                            Text("PAR Ratio", fontSize = 10.sp, color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold, maxLines = 1)
+                            Text(
+                                text = "${String.format(java.util.Locale.US, "%.2f", parRatio)}%",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                color = if (parRatio > 10.0) OverdueRed else SuccessGreen,
+                                maxLines = 1
+                            )
                         }
-                    } else {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Column(modifier = Modifier.weight(1.1f)) {
-                                Text("PAR Ratio", fontSize = 11.sp, color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold, maxLines = 1)
-                                Text(
-                                    text = "${String.format(java.util.Locale.US, "%.2f", parRatio)}%",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp,
-                                    color = if (parRatio > 10.0) OverdueRed else SuccessGreen,
-                                    maxLines = 1
-                                )
-                            }
-                            
-                            Column(modifier = Modifier.weight(1.1f)) {
-                                Text("Recovery Rate", fontSize = 11.sp, color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold, maxLines = 1)
-                                Text(
-                                    text = "${String.format(java.util.Locale.US, "%.2f", recoveryRate)}%",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp,
-                                    color = SuccessGreen,
-                                    maxLines = 1
-                                )
-                            }
+                        
+                        Column(modifier = Modifier.weight(1.1f)) {
+                            Text("Recovery Rate", fontSize = 10.sp, color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold, maxLines = 1)
+                            Text(
+                                text = "${String.format(java.util.Locale.US, "%.2f", recoveryRate)}%",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                color = SuccessGreen,
+                                maxLines = 1
+                            )
+                        }
 
-                            Column(
-                                modifier = Modifier.weight(1f),
-                                horizontalAlignment = Alignment.End
-                            ) {
-                                Text("Unsettled Dues", fontSize = 11.sp, color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold, maxLines = 1)
-                                Text(
-                                    text = "₹${String.format(java.util.Locale.US, "%,.0f", credit + debt)}",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp,
-                                    color = AccentGold,
-                                    maxLines = 1
-                                )
-                            }
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            horizontalAlignment = Alignment.End
+                        ) {
+                            Text("Unsettled Dues", fontSize = 10.sp, color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold, maxLines = 1)
+                            Text(
+                                text = "₹${String.format(java.util.Locale.US, "%,.0f", credit + debt)}",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                color = AccentGold,
+                                maxLines = 1
+                            )
                         }
                     }
                 }
@@ -727,10 +571,10 @@ fun DashboardScreenModule(viewModel: ErpViewModel) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 14.dp)
+                            .padding(horizontal = 4.dp)
                             .horizontalScroll(horizontalScrollState)
-                            .padding(bottom = 12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            .padding(bottom = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         listOf("BAR", "PIE", "LINE", "AREA", "DONUT").forEach { type ->
                             val isSelected = state.activeChartType == type
@@ -738,14 +582,14 @@ fun DashboardScreenModule(viewModel: ErpViewModel) {
                                 modifier = Modifier
                                     .background(
                                         if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.background,
-                                        RoundedCornerShape(8.dp)
+                                        RoundedCornerShape(6.dp)
                                     )
                                     .clickable { viewModel.changeChartType(type) }
-                                    .padding(horizontal = 12.dp, vertical = 6.dp)
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
                             ) {
                                 Text(
                                     text = type,
-                                    fontSize = 12.sp,
+                                    fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.secondary
                                 )

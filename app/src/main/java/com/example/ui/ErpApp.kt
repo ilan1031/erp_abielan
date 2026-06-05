@@ -286,8 +286,10 @@ fun ErpAppMain(viewModel: ErpViewModel = viewModel()) {
                                     }
                                 }
 
-                                // Floating Workspace Assistant overlay
-                                AiFloatingConsoleButton(viewModel = viewModel)
+                                 // Floating Workspace Assistant overlay
+                                if (state.isAiAssistantEnabled) {
+                                    AiFloatingConsoleButton(viewModel = viewModel)
+                                }
                             }
                         }
                     }

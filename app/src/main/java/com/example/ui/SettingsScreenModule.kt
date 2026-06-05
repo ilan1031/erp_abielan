@@ -85,6 +85,148 @@ fun SettingsScreenModule(viewModel: ErpViewModel) {
                         modifier = Modifier.scale(0.8f)
                     )
                 }
+
+                Spacer(modifier = Modifier.height(12.dp))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                        Icon(
+                            imageVector = Icons.Filled.SupportAgent,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                            Text("AI Workspace Assistant", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                            Text("Show floating companion chat widget button", fontSize = 11.sp, color = MaterialTheme.colorScheme.secondary)
+                        }
+                    }
+                    
+                    Switch(
+                        checked = state.isAiAssistantEnabled,
+                        onCheckedChange = { viewModel.setAiAssistantEnabled(it) },
+                        modifier = Modifier.scale(0.8f)
+                    )
+                }
+
+                if (state.isAiAssistantEnabled) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    var showPopup by remember { mutableStateOf(false) }
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showPopup = true }
+                            .padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Filled.SettingsInputAntenna,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.secondary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column {
+                                Text("Floating Console Customization", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                Text("Size: ${state.aiOverlaySize} • Bounds: ${state.aiOverlayMovingSpace}", fontSize = 11.sp, color = MaterialTheme.colorScheme.secondary)
+                            }
+                        }
+                        Icon(
+                            imageVector = Icons.Filled.ChevronRight,
+                            contentDescription = "Expand",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+
+                    if (showPopup) {
+                        AlertDialog(
+                            onDismissRequest = { showPopup = false },
+                            confirmButton = {
+                                Button(onClick = { showPopup = false }) {
+                                    Text("Apply Configurations")
+                                }
+                            },
+                            title = {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Filled.SupportAgent, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Console Overlay Setup", fontSize = 16.sp, fontWeight = FontWeight.Black)
+                                }
+                            },
+                            text = {
+                                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                                    Text("Adjust visual scale and drag constraints for the Workspace Advisor window.", fontSize = 12.sp, color = MaterialTheme.colorScheme.secondary)
+
+                                    // --- 1. WINDOW SIZE FIELD ---
+                                    Column {
+                                        Text("Window Size Scale", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(bottom = 6.dp))
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            listOf("Small", "Medium", "Large").forEach { size ->
+                                                val isSelected = state.aiOverlaySize == size
+                                                Box(
+                                                    modifier = Modifier
+                                                        .weight(1f)
+                                                        .background(
+                                                            if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                                            RoundedCornerShape(8.dp)
+                                                        )
+                                                        .clickable { viewModel.setAiOverlaySize(size) }
+                                                        .padding(vertical = 10.dp),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Text(size, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface)
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    // --- 2. DRAGGABLE MOVING SPACE FIELD ---
+                                    Column {
+                                        Text("Draggable Moving Space Area", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(bottom = 6.dp))
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            listOf("Full Screen", "Within Margins").forEach { space ->
+                                                val isSelected = state.aiOverlayMovingSpace == space
+                                                Box(
+                                                    modifier = Modifier
+                                                        .weight(1f)
+                                                        .background(
+                                                            if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                                            RoundedCornerShape(8.dp)
+                                                        )
+                                                        .clickable { viewModel.setAiOverlayMovingSpace(space) }
+                                                        .padding(vertical = 10.dp),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Text(space, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface)
+                                                }
+                                            }
+                                        }
+                                        Text("Full Screen allows boundary bleed, Within Margins clamps the window to viewport edges.", fontSize = 10.sp, color = MaterialTheme.colorScheme.secondary, modifier = Modifier.padding(top = 4.dp))
+                                    }
+                                }
+                            }
+                        )
+                    }
+                }
             }
         }
 

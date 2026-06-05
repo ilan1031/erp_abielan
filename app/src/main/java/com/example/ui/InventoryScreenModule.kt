@@ -1,5 +1,7 @@
 package com.example.ui
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -30,6 +32,7 @@ import com.example.data.ErpItem
 import com.example.ui.theme.glassCardAdaptive
 import com.example.viewmodel.ErpViewModel
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun InventoryScreenModule(viewModel: ErpViewModel) {
     val state by viewModel.uiState.collectAsState()
@@ -51,337 +54,11 @@ fun InventoryScreenModule(viewModel: ErpViewModel) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(scrollState)
             .padding(16.dp)
     ) {
-        // Broad Header
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(bottom = 2.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Filled.Inventory,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Inventory & Tax Hub",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Black
-                )
-            }
-        }
-        Text(
-            text = "Track active asset warehouse levels, configure low-stock signals, and manage tax mappings.",
-            fontSize = 12.sp,
-            color = MaterialTheme.colorScheme.secondary,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
-
-        // Custom Sub-Tabs Switcher (Pill style)
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp)
-                .background(
-                    if (state.isDarkMode) Color(0xFF1E293B).copy(alpha = 0.5f) else Color(0xFFF1F5F9),
-                    RoundedCornerShape(12.dp)
-                )
-                .padding(4.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(
-                        if (selectedSubTab == "catalog") MaterialTheme.colorScheme.primary 
-                        else Color.Transparent
-                    )
-                    .clickable { selectedSubTab = "catalog" }
-                    .padding(vertical = 10.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Filled.Warehouse,
-                        contentDescription = null,
-                        modifier = Modifier.size(15.dp),
-                        tint = if (selectedSubTab == "catalog") Color.White else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "Stock & Items Catalog",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = if (selectedSubTab == "catalog") Color.White else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-            
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(
-                        if (selectedSubTab == "tax") MaterialTheme.colorScheme.primary 
-                        else Color.Transparent
-                    )
-                    .clickable { selectedSubTab = "tax" }
-                    .padding(vertical = 10.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Filled.Percent,
-                        contentDescription = null,
-                        modifier = Modifier.size(15.dp),
-                        tint = if (selectedSubTab == "tax") Color.White else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "GST Tax Setup Slabs",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = if (selectedSubTab == "tax") Color.White else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        }
-
         // Animated Content depending on active sub-tab (rendered statically here inside conditional structure)
         if (selectedSubTab == "catalog") {
             // --- SECTION 1: ITEMS CATALOG & LIVE STOCK METRICS ---
-            
-            // Stock stats cards summary row
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                val totalItems = itemsList.size
-                val trackedItemsCount = itemsList.count { it.trackStock }
-                val lowStockItemsCount = itemsList.count { it.trackStock && it.stockQuantity <= it.lowStockThreshold }
-                
-                Card(
-                    modifier = Modifier.weight(1.0f),
-                    colors = CardDefaults.cardColors(containerColor = Color.Transparent)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(75.dp)
-                            .glassCardAdaptive(shape = RoundedCornerShape(12.dp), isDarkMode = state.isDarkMode)
-                            .padding(12.dp),
-                        contentAlignment = Alignment.CenterStart
-                    ) {
-                        Column {
-                            Text("Total Items", fontSize = 11.sp, color = MaterialTheme.colorScheme.secondary)
-                            Text("$totalItems SKU", fontSize = 16.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
-                        }
-                    }
-                }
-                
-                Card(
-                    modifier = Modifier.weight(1.0f),
-                    colors = CardDefaults.cardColors(containerColor = Color.Transparent)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(75.dp)
-                            .glassCardAdaptive(shape = RoundedCornerShape(12.dp), isDarkMode = state.isDarkMode)
-                            .padding(12.dp),
-                        contentAlignment = Alignment.CenterStart
-                    ) {
-                        Column {
-                            Text("Stock Tracked", fontSize = 11.sp, color = MaterialTheme.colorScheme.secondary)
-                            Text("$trackedItemsCount Products", fontSize = 16.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.secondary)
-                        }
-                    }
-                }
-                
-                Card(
-                    modifier = Modifier.weight(1.0f),
-                    colors = CardDefaults.cardColors(containerColor = Color.Transparent)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(75.dp)
-                            .glassCardAdaptive(shape = RoundedCornerShape(12.dp), isDarkMode = state.isDarkMode)
-                            .padding(12.dp),
-                        contentAlignment = Alignment.CenterStart
-                    ) {
-                        Column {
-                            Text("Low Stock Warnings", fontSize = 11.sp, color = MaterialTheme.colorScheme.secondary)
-                            Text(
-                                text = "$lowStockItemsCount Alert", 
-                                fontSize = 16.sp, 
-                                fontWeight = FontWeight.Black, 
-                                color = if (lowStockItemsCount > 0) Color(0xFFEF4444) else Color(0xFF10B981)
-                            )
-                        }
-                    }
-                }
-            }
-
-            // SKU Items Listing Cards Title
-            Text(
-                text = "Preset SKUs & Warehouse Availability",
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-
-            // --- SEARCH BAR & TOGGLE ---
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                // Search box
-                Row(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(38.dp)
-                        .border(
-                            1.dp,
-                            if (state.isDarkMode) MaterialTheme.colorScheme.outlineVariant else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
-                            RoundedCornerShape(8.dp)
-                        )
-                        .background(if (state.isDarkMode) MaterialTheme.colorScheme.surface else Color.White, RoundedCornerShape(8.dp))
-                        .padding(horizontal = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Search,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = if (state.isDarkMode) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f) else MaterialTheme.colorScheme.secondary
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Box(modifier = Modifier.weight(1f)) {
-                        if (searchQuery.isEmpty()) {
-                            Text(
-                                text = "Search Name, Class, Specifications...",
-                                fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                            )
-                        }
-                        androidx.compose.foundation.text.BasicTextField(
-                            value = searchQuery,
-                            onValueChange = { 
-                                searchQuery = it 
-                                currentPage = 1
-                            },
-                            textStyle = MaterialTheme.typography.bodyMedium.copy(
-                                fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.onSurface
-                            ),
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-                    if (searchQuery.isNotEmpty()) {
-                        IconButton(
-                            onClick = { 
-                                searchQuery = ""
-                                currentPage = 1
-                            },
-                            modifier = Modifier.size(24.dp)
-                        ) {
-                            Icon(Icons.Filled.Close, contentDescription = null, modifier = Modifier.size(14.dp))
-                        }
-                    }
-                }
-
-                // Layout toggle styled to look like button
-                OutlinedButton(
-                    onClick = { isGridView = !isGridView },
-                    shape = RoundedCornerShape(8.dp),
-                    contentPadding = PaddingValues(0.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = if (state.isDarkMode) MaterialTheme.colorScheme.surface else Color.White,
-                        contentColor = MaterialTheme.colorScheme.primary
-                    ),
-                    border = BorderStroke(
-                        1.dp,
-                        if (state.isDarkMode) MaterialTheme.colorScheme.outlineVariant else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
-                    ),
-                    modifier = Modifier.size(38.dp)
-                ) {
-                    Icon(
-                        imageVector = if (isGridView) Icons.Filled.List else Icons.Filled.GridView,
-                        contentDescription = "Toggle Layout",
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-
-                // '+' Add Predefined SKU Button
-                Button(
-                    onClick = { showAddItemDialog = true },
-                    shape = RoundedCornerShape(8.dp),
-                    contentPadding = PaddingValues(0.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = Color.White
-                    ),
-                    modifier = Modifier.size(38.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Add,
-                        contentDescription = "Add Predefined SKU",
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-            }
-
-            // Category Filter pills row with Horizontal Scroll
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 12.dp)
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                val filters = listOf(
-                    "ALL" to "All Classes",
-                    "PRODUCTS" to "Stock Managed",
-                    "SERVICES" to "Non-Stock/Services",
-                    "LOW_STOCK" to "Low Stock Alerts"
-                )
-                filters.forEach { (filterKey, filterLabel) ->
-                    val isSelected = activeCategoryFilter == filterKey
-                    FilterChip(
-                        selected = isSelected,
-                        onClick = { 
-                            activeCategoryFilter = filterKey
-                            currentPage = 1
-                        },
-                        label = { Text(filterLabel, fontSize = 11.sp, fontWeight = FontWeight.Bold) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            containerColor = if (state.isDarkMode) MaterialTheme.colorScheme.surface else Color.White,
-                            labelColor = if (state.isDarkMode) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.primary,
-                            selectedContainerColor = MaterialTheme.colorScheme.primary,
-                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary
-                        ),
-                        border = FilterChipDefaults.filterChipBorder(
-                            enabled = true,
-                            selected = isSelected,
-                            borderColor = if (state.isDarkMode) MaterialTheme.colorScheme.outlineVariant else MaterialTheme.colorScheme.outline,
-                            selectedBorderColor = MaterialTheme.colorScheme.primary
-                        )
-                    )
-                }
-            }
 
             // Filtering logic
             val filteredItemsList = itemsList.filter { item ->
@@ -406,17 +83,377 @@ fun InventoryScreenModule(viewModel: ErpViewModel) {
             val endIndex = (startIndex + itemsPerPage).coerceAtMost(filteredItemsList.size)
             val paginatedItems = if (filteredItemsList.isEmpty()) emptyList() else filteredItemsList.subList(startIndex, endIndex)
 
-            if (filteredItemsList.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
-                        .padding(24.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("No items found matching the filters.", fontSize = 12.sp, color = MaterialTheme.colorScheme.secondary)
+            LazyColumn(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+            ) {
+                item {
+                    // Broad Header (Moved Inside Scroll, up to navbar)
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Filled.Inventory,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Inventory & Tax Hub",
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Black
+                            )
+                        }
+                    }
+                    Text(
+                        text = "Track active asset warehouse levels, configure low-stock signals, and manage tax mappings.",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
                 }
-            } else {
+
+                item {
+                    // Custom Sub-Tabs Switcher (Pill style, Inside Scroll, up to navbar)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 16.dp)
+                            .background(
+                                if (state.isDarkMode) Color(0xFF0F172A).copy(alpha = 0.6f) else Color(0xFFE2E8F0),
+                                RoundedCornerShape(12.dp)
+                            )
+                            .padding(4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(
+                                    if (selectedSubTab == "catalog") MaterialTheme.colorScheme.primary 
+                                    else (if (state.isDarkMode) Color(0xFF1E293B) else Color.White)
+                                )
+                                .border(
+                                    width = 1.dp,
+                                    color = if (selectedSubTab == "catalog") MaterialTheme.colorScheme.primary
+                                            else (if (state.isDarkMode) Color.White.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.08f)),
+                                    shape = RoundedCornerShape(10.dp)
+                                )
+                                .clickable { selectedSubTab = "catalog" }
+                                .padding(vertical = 10.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Filled.Warehouse,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(15.dp),
+                                    tint = if (selectedSubTab == "catalog") Color.White else MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Stock & Items Catalog",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (selectedSubTab == "catalog") Color.White else MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+                        
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(
+                                    if (selectedSubTab == "tax") MaterialTheme.colorScheme.primary 
+                                    else (if (state.isDarkMode) Color(0xFF1E293B) else Color.White)
+                                )
+                                .border(
+                                    width = 1.dp,
+                                    color = if (selectedSubTab == "tax") MaterialTheme.colorScheme.primary
+                                            else (if (state.isDarkMode) Color.White.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.08f)),
+                                    shape = RoundedCornerShape(10.dp)
+                                )
+                                .clickable { selectedSubTab = "tax" }
+                                .padding(vertical = 10.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Filled.Percent,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(15.dp),
+                                    tint = if (selectedSubTab == "tax") Color.White else MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "GST Tax Setup Slabs",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (selectedSubTab == "tax") Color.White else MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+                    }
+                }
+                item {
+                    // Stock stats cards summary row
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        val totalItems = itemsList.size
+                        val trackedItemsCount = itemsList.count { it.trackStock }
+                        val lowStockItemsCount = itemsList.count { it.trackStock && it.stockQuantity <= it.lowStockThreshold }
+                        
+                        Card(
+                            modifier = Modifier.weight(1.0f),
+                            colors = CardDefaults.cardColors(containerColor = Color.Transparent)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(75.dp)
+                                    .glassCardAdaptive(shape = RoundedCornerShape(12.dp), isDarkMode = state.isDarkMode)
+                                    .padding(12.dp),
+                                contentAlignment = Alignment.CenterStart
+                            ) {
+                                Column {
+                                    Text("Total Items", fontSize = 11.sp, color = MaterialTheme.colorScheme.secondary)
+                                    Text("$totalItems SKU", fontSize = 16.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
+                                }
+                            }
+                        }
+                        
+                        Card(
+                            modifier = Modifier.weight(1.0f),
+                            colors = CardDefaults.cardColors(containerColor = Color.Transparent)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(75.dp)
+                                    .glassCardAdaptive(shape = RoundedCornerShape(12.dp), isDarkMode = state.isDarkMode)
+                                    .padding(12.dp),
+                                contentAlignment = Alignment.CenterStart
+                            ) {
+                                Column {
+                                    Text("Stock Tracked", fontSize = 11.sp, color = MaterialTheme.colorScheme.secondary)
+                                    Text("$trackedItemsCount Products", fontSize = 16.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.secondary)
+                                }
+                            }
+                        }
+                        
+                        Card(
+                            modifier = Modifier.weight(1.0f),
+                            colors = CardDefaults.cardColors(containerColor = Color.Transparent)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(75.dp)
+                                    .glassCardAdaptive(shape = RoundedCornerShape(12.dp), isDarkMode = state.isDarkMode)
+                                    .padding(12.dp),
+                                contentAlignment = Alignment.CenterStart
+                            ) {
+                                Column {
+                                    Text("Low Stock Warnings", fontSize = 11.sp, color = MaterialTheme.colorScheme.secondary)
+                                    Text(
+                                        text = "$lowStockItemsCount Alert", 
+                                        fontSize = 16.sp, 
+                                        fontWeight = FontWeight.Black, 
+                                        color = if (lowStockItemsCount > 0) Color(0xFFEF4444) else Color(0xFF10B981)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // SKU Items Listing Cards Title
+                    Text(
+                        text = "Preset SKUs & Warehouse Availability",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                }
+
+                stickyHeader {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.background)
+                            .padding(vertical = 4.dp)
+                    ) {
+                        // --- SEARCH BAR & TOGGLE ---
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            // Search box
+                            Row(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(38.dp)
+                                    .border(
+                                        1.dp,
+                                        if (state.isDarkMode) MaterialTheme.colorScheme.outlineVariant else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                                        RoundedCornerShape(8.dp)
+                                    )
+                                    .background(if (state.isDarkMode) MaterialTheme.colorScheme.surface else Color.White, RoundedCornerShape(8.dp))
+                                    .padding(horizontal = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Search,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp),
+                                    tint = if (state.isDarkMode) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f) else MaterialTheme.colorScheme.secondary
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Box(modifier = Modifier.weight(1f)) {
+                                    if (searchQuery.isEmpty()) {
+                                        Text(
+                                            text = "Search Name, Class, Specifications...",
+                                            fontSize = 11.sp,
+                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                            maxLines = 1,
+                                            softWrap = false,
+                                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                        )
+                                    }
+                                    androidx.compose.foundation.text.BasicTextField(
+                                        value = searchQuery,
+                                        onValueChange = { 
+                                            searchQuery = it 
+                                            currentPage = 1
+                                        },
+                                        textStyle = MaterialTheme.typography.bodyMedium.copy(
+                                            fontSize = 12.sp,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        ),
+                                        singleLine = true,
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                }
+                                if (searchQuery.isNotEmpty()) {
+                                    IconButton(
+                                        onClick = { 
+                                            searchQuery = ""
+                                            currentPage = 1
+                                        },
+                                        modifier = Modifier.size(24.dp)
+                                    ) {
+                                        Icon(Icons.Filled.Close, contentDescription = null, modifier = Modifier.size(14.dp))
+                                    }
+                                }
+                            }
+
+                            // Layout toggle styled to look like button
+                            OutlinedButton(
+                                onClick = { isGridView = !isGridView },
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(0.dp),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    containerColor = if (state.isDarkMode) MaterialTheme.colorScheme.surface else Color.White,
+                                    contentColor = MaterialTheme.colorScheme.primary
+                                ),
+                                border = BorderStroke(
+                                    1.dp,
+                                    if (state.isDarkMode) MaterialTheme.colorScheme.outlineVariant else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                                ),
+                                modifier = Modifier.size(38.dp)
+                            ) {
+                                Icon(
+                                    imageVector = if (isGridView) Icons.Filled.List else Icons.Filled.GridView,
+                                    contentDescription = "Toggle Layout",
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+
+                            // '+' Add Predefined SKU Button
+                            Button(
+                                onClick = { showAddItemDialog = true },
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(0.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary,
+                                    contentColor = Color.White
+                                ),
+                                modifier = Modifier.size(38.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Add,
+                                    contentDescription = "Add Predefined SKU",
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+
+                        // Category Filter pills row with Horizontal Scroll
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 12.dp)
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            val filters = listOf(
+                                "ALL" to "All Classes",
+                                "PRODUCTS" to "Stock Managed",
+                                "SERVICES" to "Non-Stock/Services",
+                                "LOW_STOCK" to "Low Stock Alerts"
+                            )
+                            filters.forEach { (filterKey, filterLabel) ->
+                                val isSelected = activeCategoryFilter == filterKey
+                                FilterChip(
+                                    selected = isSelected,
+                                    onClick = { 
+                                        activeCategoryFilter = filterKey
+                                        currentPage = 1
+                                    },
+                                    label = { Text(filterLabel, fontSize = 11.sp, fontWeight = FontWeight.Bold) },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        containerColor = if (state.isDarkMode) MaterialTheme.colorScheme.surface else Color.White,
+                                        labelColor = if (state.isDarkMode) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.primary,
+                                        selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                        selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                                    ),
+                                    border = FilterChipDefaults.filterChipBorder(
+                                        enabled = true,
+                                        selected = isSelected,
+                                        borderColor = if (state.isDarkMode) MaterialTheme.colorScheme.outlineVariant else MaterialTheme.colorScheme.outline,
+                                        selectedBorderColor = MaterialTheme.colorScheme.primary
+                                    )
+                                )
+                            }
+                        }
+                    }
+                }
+
+                item {
+                    if (filteredItemsList.isEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
+                                .padding(24.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("No items found matching the filters.", fontSize = 12.sp, color = MaterialTheme.colorScheme.secondary)
+                        }
+                    } else {
                 if (!isGridView) {
                     // Corporate Table List View (Exactly like Finance tab layout design)
                     val tableScrollState = rememberScrollState()
@@ -541,44 +578,91 @@ fun InventoryScreenModule(viewModel: ErpViewModel) {
                                                         .padding(14.dp),
                                                     verticalArrangement = Arrangement.spacedBy(8.dp)
                                                 ) {
-                                                    // Row 1: Category Tag on top of the card
+                                                    // Row 1: Category Tag and Edit & Delete Actions on top of the card
                                                     Row(
                                                         modifier = Modifier.fillMaxWidth(),
                                                         horizontalArrangement = Arrangement.SpaceBetween,
                                                         verticalAlignment = Alignment.CenterVertically
                                                     ) {
-                                                        Box(
-                                                            modifier = Modifier
-                                                                .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f), RoundedCornerShape(6.dp))
-                                                                .padding(horizontal = 8.dp, vertical = 3.dp)
+                                                        Row(
+                                                            verticalAlignment = Alignment.CenterVertically,
+                                                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                                            modifier = Modifier.weight(1f, fill = false)
                                                         ) {
-                                                            Text(
-                                                                text = pItem.category.uppercase(java.util.Locale.US),
-                                                                fontSize = 8.sp,
-                                                                fontWeight = FontWeight.Black,
-                                                                letterSpacing = 0.6.sp,
-                                                                color = MaterialTheme.colorScheme.secondary,
-                                                                maxLines = 1
-                                                            )
-                                                        }
-                                                        
-                                                        // Optional tiny status indicator (low stock count/warning)
-                                                        if (isLowStock) {
                                                             Box(
                                                                 modifier = Modifier
-                                                                    .background(Color(0xFFEF4444).copy(alpha = 0.12f), RoundedCornerShape(4.dp))
+                                                                    .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f), RoundedCornerShape(6.dp))
                                                                     .padding(horizontal = 6.dp, vertical = 2.dp)
                                                             ) {
                                                                 Text(
-                                                                    text = "LOW ALERT",
+                                                                    text = pItem.category.uppercase(java.util.Locale.US),
                                                                     fontSize = 8.sp,
-                                                                    fontWeight = FontWeight.Bold,
-                                                                    color = Color(0xFFEF4444)
+                                                                    fontWeight = FontWeight.Black,
+                                                                    letterSpacing = 0.4.sp,
+                                                                    color = MaterialTheme.colorScheme.secondary,
+                                                                    maxLines = 1,
+                                                                    softWrap = false,
+                                                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                                                )
+                                                            }
+                                                            
+                                                            // Optional tiny status indicator (low stock warning)
+                                                            if (isLowStock) {
+                                                                Box(
+                                                                    modifier = Modifier
+                                                                        .background(Color(0xFFEF4444).copy(alpha = 0.12f), RoundedCornerShape(4.dp))
+                                                                        .padding(horizontal = 4.dp, vertical = 1.5.dp)
+                                                                ) {
+                                                                    Text(
+                                                                        text = "LOW ALERT",
+                                                                        fontSize = 8.sp,
+                                                                        fontWeight = FontWeight.Bold,
+                                                                        color = Color(0xFFEF4444),
+                                                                        maxLines = 1,
+                                                                        softWrap = false,
+                                                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                                                    )
+                                                                }
+                                                            }
+                                                        }
+
+                                                        Spacer(modifier = Modifier.width(4.dp))
+
+                                                        // Action buttons side-by-side on top-right (Strictly compact sizing to prevent overlaps)
+                                                        Row(
+                                                            verticalAlignment = Alignment.CenterVertically,
+                                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                                        ) {
+                                                            IconButton(
+                                                                onClick = { editingItem = pItem },
+                                                                modifier = Modifier
+                                                                    .size(22.dp)
+                                                                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f), RoundedCornerShape(4.dp))
+                                                            ) {
+                                                                Icon(
+                                                                    imageVector = Icons.Filled.Edit,
+                                                                    contentDescription = "Edit Preset SKU",
+                                                                    tint = MaterialTheme.colorScheme.primary,
+                                                                    modifier = Modifier.size(11.dp)
+                                                                )
+                                                            }
+
+                                                            IconButton(
+                                                                onClick = { viewModel.removeItem(pItem) },
+                                                                modifier = Modifier
+                                                                    .size(22.dp)
+                                                                    .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.15f), RoundedCornerShape(4.dp))
+                                                            ) {
+                                                                Icon(
+                                                                    imageVector = Icons.Filled.Delete,
+                                                                    contentDescription = "Remove Preset SKU",
+                                                                    tint = MaterialTheme.colorScheme.error,
+                                                                    modifier = Modifier.size(11.dp)
                                                                 )
                                                             }
                                                         }
                                                     }
-
+ 
                                                     // Row 2: Name
                                                     Text(
                                                         text = pItem.name,
@@ -589,7 +673,7 @@ fun InventoryScreenModule(viewModel: ErpViewModel) {
                                                         lineHeight = 17.sp,
                                                         overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                                                     )
-
+ 
                                                     // Row 3: Description (clean, reduced text height)
                                                     if (pItem.description.isNotBlank()) {
                                                         Text(
@@ -602,6 +686,22 @@ fun InventoryScreenModule(viewModel: ErpViewModel) {
                                                         )
                                                     }
 
+                                                    if (pItem.vendorName.isNotBlank()) {
+                                                        Spacer(modifier = Modifier.height(2.dp))
+                                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                                            Text("Vendor: ", fontSize = 10.sp, color = MaterialTheme.colorScheme.secondary)
+                                                            Text(
+                                                                text = pItem.vendorName,
+                                                                fontSize = 11.sp,
+                                                                fontWeight = FontWeight.Bold,
+                                                                color = MaterialTheme.colorScheme.primary,
+                                                                modifier = Modifier.clickable {
+                                                                    viewModel.selectAndNavigateToPartnerProfile(pItem.vendorName, "VENDOR")
+                                                                }
+                                                            )
+                                                        }
+                                                    }
+ 
                                                     // Row 4: Pricing & GST Details in a neat, balanced horizontal row
                                                     Row(
                                                         modifier = Modifier.fillMaxWidth(),
@@ -627,138 +727,117 @@ fun InventoryScreenModule(viewModel: ErpViewModel) {
                                                             )
                                                         }
                                                     }
-
+ 
                                                     HorizontalDivider(
                                                         color = if (state.isDarkMode) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.05f),
                                                         thickness = 1.dp,
                                                         modifier = Modifier.padding(vertical = 1.dp)
                                                     )
-
+ 
                                                     // Row 5: Stock Status Badge & Counter Modifier Controls
                                                     Row(
                                                         modifier = Modifier.fillMaxWidth(),
                                                         horizontalArrangement = Arrangement.SpaceBetween,
                                                         verticalAlignment = Alignment.CenterVertically
                                                     ) {
-                                                        // Stock Info Level Badge
-                                                        if (pItem.trackStock) {
-                                                            Box(
-                                                                modifier = Modifier
-                                                                    .background(
-                                                                        if (isLowStock) Color(0xFFEF4444).copy(alpha = 0.12f)
-                                                                        else Color(0xFF10B981).copy(alpha = 0.12f),
-                                                                        RoundedCornerShape(6.dp)
-                                                                    )
-                                                                    .padding(horizontal = 8.dp, vertical = 4.dp)
-                                                            ) {
-                                                                Text(
-                                                                    text = "${pItem.stockQuantity} in Stock",
-                                                                    fontWeight = FontWeight.Bold,
-                                                                    fontSize = 10.sp,
-                                                                    color = if (isLowStock) Color(0xFFEF4444) else Color(0xFF10B981)
-                                                                )
-                                                            }
-                                                        } else {
-                                                            Box(
-                                                                modifier = Modifier
-                                                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f), RoundedCornerShape(6.dp))
-                                                                    .padding(horizontal = 8.dp, vertical = 4.dp)
-                                                            ) {
-                                                                Text(
-                                                                    text = "⚙ Unlimited Service",
-                                                                    fontWeight = FontWeight.Bold,
-                                                                    fontSize = 9.sp,
-                                                                    color = MaterialTheme.colorScheme.primary
-                                                                )
-                                                            }
-                                                        }
-
-                                                        // Adjust controls and Trash Icon Action on the right side
+                                                        // Stock Info Level Badge (Styled with weight & ellipsis to prevent overlaps on thin cards)
                                                         Row(
                                                             verticalAlignment = Alignment.CenterVertically,
-                                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                                            modifier = Modifier.weight(1f, fill = false)
                                                         ) {
                                                             if (pItem.trackStock) {
+                                                                Box(
+                                                                    modifier = Modifier
+                                                                        .background(
+                                                                            if (isLowStock) Color(0xFFEF4444).copy(alpha = 0.12f)
+                                                                            else Color(0xFF10B981).copy(alpha = 0.12f),
+                                                                            RoundedCornerShape(6.dp)
+                                                                        )
+                                                                        .padding(horizontal = 6.dp, vertical = 2.5.dp)
+                                                                ) {
+                                                                    Text(
+                                                                        text = "${pItem.stockQuantity} in Stock",
+                                                                        fontWeight = FontWeight.Bold,
+                                                                        fontSize = 9.sp,
+                                                                        color = if (isLowStock) Color(0xFFEF4444) else Color(0xFF10B981),
+                                                                        maxLines = 1,
+                                                                        softWrap = false,
+                                                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                                                    )
+                                                                }
+                                                            } else {
+                                                                Box(
+                                                                    modifier = Modifier
+                                                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f), RoundedCornerShape(6.dp))
+                                                                        .padding(horizontal = 6.dp, vertical = 2.5.dp)
+                                                                ) {
+                                                                    Text(
+                                                                        text = "⚙ Unlimited Service",
+                                                                        fontWeight = FontWeight.Bold,
+                                                                        fontSize = 9.sp,
+                                                                        color = MaterialTheme.colorScheme.primary,
+                                                                        maxLines = 1,
+                                                                        softWrap = false,
+                                                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                                                    )
+                                                                }
+                                                            }
+                                                        }
+ 
+                                                        Spacer(modifier = Modifier.width(4.dp))
+
+                                                        // Adjust stock quantity controls on the right side
+                                                        if (pItem.trackStock) {
+                                                            Row(
+                                                                verticalAlignment = Alignment.CenterVertically,
+                                                                horizontalArrangement = Arrangement.spacedBy(3.dp)
+                                                            ) {
                                                                 // Minus Button
                                                                 IconButton(
                                                                     onClick = { viewModel.adjustItemStock(pItem.id, (pItem.stockQuantity - 1).coerceAtLeast(0)) },
                                                                     modifier = Modifier
-                                                                        .size(24.dp)
+                                                                        .size(22.dp)
                                                                         .clip(RoundedCornerShape(4.dp))
                                                                         .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f))
                                                                 ) {
                                                                     Icon(
                                                                         imageVector = Icons.Filled.Remove,
                                                                         contentDescription = "Decrease Stock Level",
-                                                                        modifier = Modifier.size(10.dp)
+                                                                        modifier = Modifier.size(9.dp)
                                                                     )
                                                                 }
-
+ 
                                                                 Text(
                                                                     text = pItem.stockQuantity.toString(),
                                                                     fontWeight = FontWeight.Black,
-                                                                    fontSize = 11.sp,
-                                                                    modifier = Modifier.width(20.dp),
+                                                                    fontSize = 10.sp,
+                                                                    modifier = Modifier.width(18.dp),
                                                                     textAlign = TextAlign.Center
                                                                 )
-
+ 
                                                                 // Plus Button
                                                                 IconButton(
                                                                     onClick = { viewModel.adjustItemStock(pItem.id, pItem.stockQuantity + 1) },
                                                                     modifier = Modifier
-                                                                        .size(24.dp)
+                                                                        .size(22.dp)
                                                                         .clip(RoundedCornerShape(4.dp))
                                                                         .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f))
                                                                 ) {
                                                                     Icon(
                                                                         imageVector = Icons.Filled.Add,
                                                                         contentDescription = "Increase Stock Level",
-                                                                        modifier = Modifier.size(10.dp)
+                                                                        modifier = Modifier.size(9.dp)
                                                                     )
                                                                 }
                                                             }
-
-                                                            Spacer(modifier = Modifier.width(4.dp))
-
-                                                            // Edit Button
-                                                            IconButton(
-                                                                onClick = { editingItem = pItem },
-                                                                modifier = Modifier
-                                                                    .size(24.dp)
-                                                                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f), RoundedCornerShape(4.dp))
-                                                            ) {
-                                                                Icon(
-                                                                    imageVector = Icons.Filled.Edit,
-                                                                    contentDescription = "Edit Preset SKU",
-                                                                    tint = MaterialTheme.colorScheme.primary,
-                                                                    modifier = Modifier.size(12.dp)
-                                                                )
-                                                            }
-
-                                                            Spacer(modifier = Modifier.width(4.dp))
-
-                                                            // Trash Button
-                                                            IconButton(
-                                                                onClick = { viewModel.removeItem(pItem) },
-                                                                modifier = Modifier
-                                                                    .size(24.dp)
-                                                                    .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.15f), RoundedCornerShape(4.dp))
-                                                            ) {
-                                                                Icon(
-                                                                    imageVector = Icons.Filled.Delete,
-                                                                    contentDescription = "Remove Preset SKU",
-                                                                    tint = MaterialTheme.colorScheme.error,
-                                                                    modifier = Modifier.size(12.dp)
-                                                                )
-                                                            }
+                                                        }
+                                                    }
+                                                    if (rowItems.size < columnsCount) {
+                                                        repeat(columnsCount - rowItems.size) {
+                                                            Spacer(modifier = Modifier.weight(1f))
                                                         }
                                                     }
                                                 }
-                                            }
-                                        }
-                                        if (rowItems.size < columnsCount) {
-                                            repeat(columnsCount - rowItems.size) {
-                                                Spacer(modifier = Modifier.weight(1f))
                                             }
                                         }
                                     }
@@ -789,8 +868,127 @@ fun InventoryScreenModule(viewModel: ErpViewModel) {
                     }
                 }
             }
-        } else {
-            // --- SECTION 2: GST TAX SETUP SLABS & MAPPINGS ("also this tax setup as another") ---
+        }
+    }
+} else {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+            ) {
+                // Broad Header (Inside Scroll)
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Filled.Inventory,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Inventory & Tax Hub",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Black
+                        )
+                    }
+                }
+                Text(
+                    text = "Track active asset warehouse levels, configure low-stock signals, and manage tax mappings.",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+
+                // Custom Sub-Tabs Switcher (Pill style, Inside Scroll)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp)
+                        .background(
+                            if (state.isDarkMode) Color(0xFF0F172A).copy(alpha = 0.6f) else Color(0xFFE2E8F0),
+                            RoundedCornerShape(12.dp)
+                        )
+                        .padding(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(
+                                if (selectedSubTab == "catalog") MaterialTheme.colorScheme.primary 
+                                else (if (state.isDarkMode) Color(0xFF1E293B) else Color.White)
+                            )
+                            .border(
+                                width = 1.dp,
+                                color = if (selectedSubTab == "catalog") MaterialTheme.colorScheme.primary
+                                        else (if (state.isDarkMode) Color.White.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.08f)),
+                                shape = RoundedCornerShape(10.dp)
+                            )
+                            .clickable { selectedSubTab = "catalog" }
+                            .padding(vertical = 10.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Filled.Warehouse,
+                                contentDescription = null,
+                                modifier = Modifier.size(15.dp),
+                                tint = if (selectedSubTab == "catalog") Color.White else MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Stock & Items Catalog",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (selectedSubTab == "catalog") Color.White else MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
+                    
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(
+                                if (selectedSubTab == "tax") MaterialTheme.colorScheme.primary 
+                                else (if (state.isDarkMode) Color(0xFF1E293B) else Color.White)
+                            )
+                            .border(
+                                width = 1.dp,
+                                color = if (selectedSubTab == "tax") MaterialTheme.colorScheme.primary
+                                        else (if (state.isDarkMode) Color.White.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.08f)),
+                                shape = RoundedCornerShape(10.dp)
+                            )
+                            .clickable { selectedSubTab = "tax" }
+                            .padding(vertical = 10.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Filled.Percent,
+                                contentDescription = null,
+                                modifier = Modifier.size(15.dp),
+                                tint = if (selectedSubTab == "tax") Color.White else MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "GST Tax Setup Slabs",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (selectedSubTab == "tax") Color.White else MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
+                }
+
+                // --- SECTION 2: GST TAX SETUP SLABS & MAPPINGS ("also this tax setup as another") ---
             Text(
                 text = "GST Bracket Setup System",
                 fontSize = 14.sp,
@@ -920,10 +1118,11 @@ fun InventoryScreenModule(viewModel: ErpViewModel) {
                     }
                 }
             }
+            Spacer(modifier = Modifier.height(30.dp))
         }
-        
-        Spacer(modifier = Modifier.height(30.dp))
     }
+}
+
 
     // Modern Modal Dialog Form for adding and editing predefined SKU Catalog Preset
     if (showAddItemDialog || editingItem != null) {
@@ -963,6 +1162,14 @@ fun InventoryScreenModule(viewModel: ErpViewModel) {
                     var itemCategory by remember(editingItem) { mutableStateOf(editingItem?.category ?: "Product") }
                     var itemGstSelected by remember(editingItem) { mutableStateOf(editingItem?.gstRatePct ?: 18.0) }
                     var itemDesc by remember(editingItem) { mutableStateOf(editingItem?.description ?: "") }
+                    var itemVendorName by remember(editingItem) { mutableStateOf(editingItem?.vendorName ?: "") }
+                    var showVendorDropdown by remember { mutableStateOf(false) }
+                    val partnersList by viewModel.partners.collectAsState()
+                    val vendorSuggestions = remember(itemVendorName, partnersList) {
+                        partnersList.filter {
+                            it.type == "VENDOR" && (itemVendorName.isBlank() || it.name.contains(itemVendorName, ignoreCase = true))
+                        }
+                    }
                     
                     // Option 1 vs Option 2 selection (with stock management or as non-stock service)
                     var enableStockManagement by remember(editingItem) { mutableStateOf(editingItem?.trackStock ?: true) }
@@ -1092,6 +1299,61 @@ fun InventoryScreenModule(viewModel: ErpViewModel) {
                         modifier = Modifier.fillMaxWidth().padding(bottom = 14.dp)
                     )
 
+                    // Associated Vendor Dropdown/Input
+                    Box(modifier = Modifier.fillMaxWidth().padding(bottom = 14.dp)) {
+                        Column {
+                            OutlinedTextField(
+                                value = itemVendorName,
+                                onValueChange = { 
+                                    itemVendorName = it
+                                    showVendorDropdown = true
+                                },
+                                label = { Text("Associated Vendor Name") },
+                                placeholder = { Text("e.g. Dell Distributor Co.") },
+                                singleLine = true,
+                                colors = inputColors,
+                                shape = RoundedCornerShape(12.dp),
+                                textStyle = androidx.compose.ui.text.TextStyle(fontSize = 12.sp),
+                                modifier = Modifier.fillMaxWidth(),
+                                trailingIcon = {
+                                    IconButton(onClick = { showVendorDropdown = !showVendorDropdown }) {
+                                        Icon(
+                                            imageVector = Icons.Filled.ArrowDropDown, 
+                                            contentDescription = "Toggle Vendors",
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                }
+                            )
+                            if (showVendorDropdown && vendorSuggestions.isNotEmpty()) {
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 4.dp),
+                                    shape = RoundedCornerShape(8.dp),
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                                    elevation = CardDefaults.cardElevation(4.dp)
+                                ) {
+                                    Column(modifier = Modifier.padding(4.dp)) {
+                                        vendorSuggestions.take(4).forEach { vendor ->
+                                            Text(
+                                                text = vendor.name,
+                                                fontSize = 12.sp,
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .clickable {
+                                                        itemVendorName = vendor.name
+                                                        showVendorDropdown = false
+                                                    }
+                                                    .padding(8.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     if (enableStockManagement) {
                         Row(
                             modifier = Modifier.fillMaxWidth().padding(bottom = 14.dp),
@@ -1189,7 +1451,8 @@ fun InventoryScreenModule(viewModel: ErpViewModel) {
                                                 description = itemDesc,
                                                 trackStock = enableStockManagement,
                                                 stockQuantity = if (enableStockManagement) parsedStock else 0,
-                                                lowStockThreshold = if (enableStockManagement) parsedThreshold else 5
+                                                lowStockThreshold = if (enableStockManagement) parsedThreshold else 5,
+                                                vendorName = itemVendorName
                                             )
                                         )
                                     } else {
@@ -1201,7 +1464,8 @@ fun InventoryScreenModule(viewModel: ErpViewModel) {
                                             description = itemDesc,
                                             trackStock = enableStockManagement,
                                             stockQuantity = if (enableStockManagement) parsedStock else 0,
-                                            lowStockThreshold = if (enableStockManagement) parsedThreshold else 5
+                                            lowStockThreshold = if (enableStockManagement) parsedThreshold else 5,
+                                            vendorName = itemVendorName
                                         )
                                     }
                                     showAddItemDialog = false
@@ -1288,6 +1552,25 @@ fun InventoryTableRowItem(
                     fontWeight = FontWeight.Black,
                     color = MaterialTheme.colorScheme.secondary
                 )
+            }
+            if (pItem.vendorName.isNotBlank()) {
+                Spacer(modifier = Modifier.height(3.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "Vendor: ",
+                        fontSize = 10.sp,
+                        color = if (isDark) Color.White.copy(alpha = 0.5f) else Color.Black.copy(alpha = 0.5f)
+                    )
+                    Text(
+                        text = pItem.vendorName,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.clickable {
+                            viewModel.selectAndNavigateToPartnerProfile(pItem.vendorName, "VENDOR")
+                        }
+                    )
+                }
             }
         }
 
@@ -1443,135 +1726,133 @@ fun InventoryPaginationControl(
 ) {
     val textColor = if (isDark) Color.White.copy(alpha = 0.6f) else Color.Black.copy(alpha = 0.6f)
     
-    BoxWithConstraints(
+    Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp, horizontal = 4.dp)
+            .padding(vertical = 4.dp, horizontal = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        val availableWidth = maxWidth
-        val isVeryCompact = availableWidth < 360.dp
-        val isCompact = availableWidth < 500.dp
+        // Left side: space is now used to show the count beautifully
+        Text(
+            text = "Showing ${if (totalItems == 0) 0 else startIndex + 1}–${endIndex} of ${totalItems} entries",
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Medium,
+            color = textColor
+        )
 
+        // Right side: dropdown for data limit and navigation arrows moved here
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Left region: Items Per Page Selector
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(if (isVeryCompact) 2.dp else 4.dp)
-            ) {
-                if (!isVeryCompact) {
+            var dropdownExpanded by remember { mutableStateOf(false) }
+            Box {
+                Row(
+                    modifier = Modifier
+                        .background(
+                            if (isDark) Color(0xFF131926).copy(alpha = 0.4f) else Color.White,
+                            RoundedCornerShape(6.dp)
+                        )
+                        .border(
+                            1.dp,
+                            if (isDark) Color.White.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.08f),
+                            RoundedCornerShape(6.dp)
+                        )
+                        .clickable { dropdownExpanded = true }
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
                     Text(
-                        text = "Show:",
-                        fontSize = if (isCompact) 10.sp else 11.sp,
-                        color = textColor,
-                        fontWeight = FontWeight.Medium
+                        text = "Limit: $itemsPerPage",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isDark) Color.White.copy(alpha = 0.9f) else Color.Black.copy(alpha = 0.9f)
+                    )
+                    Icon(
+                        imageVector = Icons.Filled.ArrowDropDown,
+                        contentDescription = "Select Limit",
+                        modifier = Modifier.size(14.dp),
+                        tint = MaterialTheme.colorScheme.primary
                     )
                 }
-                
-                listOf(5, 10, 20).forEach { size ->
-                    val isSelected = itemsPerPage == size
-                    val chipBg = if (isSelected) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        if (isDark) Color(0xFF131926).copy(alpha = 0.4f) else Color.White
-                    }
-                    val chipTextCol = if (isSelected) {
-                        Color.White
-                    } else {
-                        if (isDark) Color.White.copy(alpha = 0.7f) else Color.Black.copy(alpha = 0.7f)
-                    }
-                    Box(
-                        modifier = Modifier
-                            .background(chipBg, RoundedCornerShape(4.dp))
-                            .border(
-                                1.dp,
-                                if (isSelected) Color.Transparent else (if (isDark) Color.White.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.08f)),
-                                RoundedCornerShape(4.dp)
-                            )
-                            .clickable { onItemsPerPageChange(size) }
-                            .padding(
-                                horizontal = if (isVeryCompact) 5.dp else if (isCompact) 6.dp else 8.dp, 
-                                vertical = if (isCompact) 3.dp else 4.dp
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = size.toString(),
-                            fontSize = if (isCompact) 10.sp else 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = chipTextCol
+
+                DropdownMenu(
+                    expanded = dropdownExpanded,
+                    onDismissRequest = { dropdownExpanded = false },
+                    modifier = Modifier.background(if (isDark) Color(0xFF1F2937) else Color.White)
+                ) {
+                    listOf(5, 10, 20, 50).forEach { size ->
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    text = "$size per page",
+                                    fontSize = 11.sp,
+                                    fontWeight = if (itemsPerPage == size) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (itemsPerPage == size) MaterialTheme.colorScheme.primary else (if (isDark) Color.White else Color.Black)
+                                )
+                            },
+                            onClick = {
+                                onItemsPerPageChange(size)
+                                dropdownExpanded = false
+                            },
+                            modifier = Modifier.height(36.dp)
                         )
                     }
                 }
             }
 
-            // Right region: Navigation details & Arrow actions
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(if (isVeryCompact) 4.dp else 8.dp)
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                // Page ranges
-                Text(
-                    text = if (isVeryCompact) "${if (totalItems == 0) 0 else startIndex + 1}-${endIndex}" else "${if (totalItems == 0) 0 else startIndex + 1}-${endIndex} of ${totalItems}",
-                    fontSize = if (isCompact) 10.sp else 11.sp,
-                    color = textColor,
-                    fontWeight = FontWeight.Bold
-                )
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(2.dp)
+                // Previous Icon Button
+                IconButton(
+                    onClick = { if (currentPage > 1) onPageChange(currentPage - 1) },
+                    enabled = currentPage > 1,
+                    modifier = Modifier
+                        .size(24.dp)
+                        .background(
+                            if (isDark) Color(0xFF131926).copy(alpha = 0.4f) else Color.White,
+                            RoundedCornerShape(4.dp)
+                        )
+                        .border(
+                            1.dp,
+                            if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.05f),
+                            RoundedCornerShape(4.dp)
+                        )
                 ) {
-                    // Previous Icon Button
-                    IconButton(
-                        onClick = { if (currentPage > 1) onPageChange(currentPage - 1) },
-                        enabled = currentPage > 1,
-                        modifier = Modifier
-                            .size(if (isCompact) 24.dp else 28.dp)
-                            .background(
-                                if (isDark) Color(0xFF131926).copy(alpha = 0.4f) else Color.White,
-                                RoundedCornerShape(4.dp)
-                            )
-                            .border(
-                                1.dp,
-                                if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.05f),
-                                RoundedCornerShape(4.dp)
-                            )
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.ChevronLeft,
-                            contentDescription = "Previous Page",
-                            tint = if (currentPage > 1) MaterialTheme.colorScheme.primary else textColor.copy(alpha = 0.3f),
-                            modifier = Modifier.size(if (isCompact) 12.dp else 14.dp)
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.Filled.ChevronLeft,
+                        contentDescription = "Previous Page",
+                        tint = if (currentPage > 1) MaterialTheme.colorScheme.primary else textColor.copy(alpha = 0.3f),
+                        modifier = Modifier.size(12.dp)
+                    )
+                }
 
-                    // Next Icon Button
-                    IconButton(
-                        onClick = { if (currentPage < totalPages) onPageChange(currentPage + 1) },
-                        enabled = currentPage < totalPages,
-                        modifier = Modifier
-                            .size(if (isCompact) 24.dp else 28.dp)
-                            .background(
-                                if (isDark) Color(0xFF131926).copy(alpha = 0.4f) else Color.White,
-                                RoundedCornerShape(4.dp)
-                            )
-                            .border(
-                                1.dp,
-                                if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.05f),
-                                RoundedCornerShape(4.dp)
-                            )
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.ChevronRight,
-                            contentDescription = "Next Page",
-                            tint = if (currentPage < totalPages) MaterialTheme.colorScheme.primary else textColor.copy(alpha = 0.3f),
-                            modifier = Modifier.size(if (isCompact) 12.dp else 14.dp)
+                // Next Icon Button
+                IconButton(
+                    onClick = { if (currentPage < totalPages) onPageChange(currentPage + 1) },
+                    enabled = currentPage < totalPages,
+                    modifier = Modifier
+                        .size(24.dp)
+                        .background(
+                            if (isDark) Color(0xFF131926).copy(alpha = 0.4f) else Color.White,
+                            RoundedCornerShape(4.dp)
                         )
-                    }
+                        .border(
+                            1.dp,
+                            if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.05f),
+                            RoundedCornerShape(4.dp)
+                        )
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.ChevronRight,
+                        contentDescription = "Next Page",
+                        tint = if (currentPage < totalPages) MaterialTheme.colorScheme.primary else textColor.copy(alpha = 0.3f),
+                        modifier = Modifier.size(12.dp)
+                    )
                 }
             }
         }

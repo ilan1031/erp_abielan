@@ -13,5 +13,6 @@ data class ErpItem(
     val description: String = "",
     val trackStock: Boolean = false,
     val stockQuantity: Int = 0,
-    val lowStockThreshold: Int = 5
+    val lowStockThreshold: Int = 5,
+    val vendorName: String = ""
 )

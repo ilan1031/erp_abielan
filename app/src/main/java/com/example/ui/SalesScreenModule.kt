@@ -52,7 +52,7 @@ fun SalesScreenModule(viewModel: ErpViewModel) {
 
     val mainPadding = if (isCompactMobile) 10.dp else 16.dp
 
-    var activeSalesTab by remember { mutableStateOf("orders") } // "orders" or "inventory"
+    val activeSalesTab = state.activeSalesTab
 
     Column(
         modifier = Modifier.fillMaxSize()
@@ -63,7 +63,7 @@ fun SalesScreenModule(viewModel: ErpViewModel) {
                 .fillMaxWidth()
                 .padding(horizontal = mainPadding, vertical = 12.dp)
                 .background(
-                    if (state.isDarkMode) Color(0xFF1E293B).copy(alpha = 0.5f) else Color(0xFFF1F5F9),
+                    if (state.isDarkMode) Color(0xFF0F172A).copy(alpha = 0.6f) else Color(0xFFE2E8F0),
                     RoundedCornerShape(12.dp)
                 )
                 .padding(4.dp),
@@ -75,25 +75,32 @@ fun SalesScreenModule(viewModel: ErpViewModel) {
                     .clip(RoundedCornerShape(10.dp))
                     .background(
                         if (activeSalesTab == "orders") MaterialTheme.colorScheme.primary 
-                        else Color.Transparent
+                        else (if (state.isDarkMode) Color(0xFF1E293B) else Color.White)
                     )
-                    .clickable { activeSalesTab = "orders" }
+                    .border(
+                        width = 1.dp,
+                        color = if (activeSalesTab == "orders") MaterialTheme.colorScheme.primary
+                                else (if (state.isDarkMode) Color.White.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.08f)),
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                    .clickable { viewModel.setSalesTab("orders") }
                     .padding(vertical = 10.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
                     Icon(
                         imageVector = Icons.Filled.Work,
                         contentDescription = null,
-                        modifier = Modifier.size(15.dp),
-                        tint = if (activeSalesTab == "orders") Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                        modifier = Modifier.size(13.dp),
+                        tint = if (activeSalesTab == "orders") Color.White else MaterialTheme.colorScheme.primary
                     )
-                    Spacer(modifier = Modifier.width(6.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "Sales Orders (SO)",
-                        fontSize = 12.sp,
+                        text = if (isCompactMobile) "Orders" else "Sales Orders",
+                        fontSize = if (screenWidth < 360) 10.sp else 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = if (activeSalesTab == "orders") Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                        color = if (activeSalesTab == "orders") Color.White else MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1
                     )
                 }
             }
@@ -104,25 +111,68 @@ fun SalesScreenModule(viewModel: ErpViewModel) {
                     .clip(RoundedCornerShape(10.dp))
                     .background(
                         if (activeSalesTab == "inventory") MaterialTheme.colorScheme.primary 
-                        else Color.Transparent
+                        else (if (state.isDarkMode) Color(0xFF1E293B) else Color.White)
                     )
-                    .clickable { activeSalesTab = "inventory" }
+                    .border(
+                        width = 1.dp,
+                        color = if (activeSalesTab == "inventory") MaterialTheme.colorScheme.primary
+                                else (if (state.isDarkMode) Color.White.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.08f)),
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                    .clickable { viewModel.setSalesTab("inventory") }
                     .padding(vertical = 10.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
                     Icon(
                         imageVector = Icons.Filled.Inventory,
                         contentDescription = null,
-                        modifier = Modifier.size(15.dp),
-                        tint = if (activeSalesTab == "inventory") Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                        modifier = Modifier.size(13.dp),
+                        tint = if (activeSalesTab == "inventory") Color.White else MaterialTheme.colorScheme.primary
                     )
-                    Spacer(modifier = Modifier.width(6.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "Inventory & Tax Hub",
-                        fontSize = 12.sp,
+                        text = if (isCompactMobile) "Tax Hub" else "Inventory Hub",
+                        fontSize = if (screenWidth < 360) 10.sp else 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = if (activeSalesTab == "inventory") Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                        color = if (activeSalesTab == "inventory") Color.White else MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1
+                    )
+                }
+            }
+
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(
+                        if (activeSalesTab == "partners") MaterialTheme.colorScheme.primary 
+                        else (if (state.isDarkMode) Color(0xFF1E293B) else Color.White)
+                    )
+                    .border(
+                        width = 1.dp,
+                        color = if (activeSalesTab == "partners") MaterialTheme.colorScheme.primary
+                                else (if (state.isDarkMode) Color.White.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.08f)),
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                    .clickable { viewModel.setSalesTab("partners") }
+                    .padding(vertical = 10.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+                    Icon(
+                        imageVector = Icons.Filled.People,
+                        contentDescription = null,
+                        modifier = Modifier.size(13.dp),
+                        tint = if (activeSalesTab == "partners") Color.White else MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = if (isCompactMobile) "Contacts" else "Clients & Vendors",
+                        fontSize = if (screenWidth < 360) 10.sp else 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (activeSalesTab == "partners") Color.White else MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1
                     )
                 }
             }
@@ -938,6 +988,9 @@ fun SalesScreenModule(viewModel: ErpViewModel) {
                 }
                 "inventory" -> {
                     InventoryScreenModule(viewModel)
+                }
+                "partners" -> {
+                    PartnersScreenModule(viewModel, mainPadding)
                 }
             }
         }

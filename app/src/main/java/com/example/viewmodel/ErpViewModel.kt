@@ -39,6 +39,8 @@ data class AuthState(
 data class ErpUiState(
     val auth: AuthState = AuthState(),
     val activeTab: String = "Dashboard", // "Dashboard", "Sales", "Finance", "Reports", "Settings"
+    val activeSalesTab: String = "orders", // "orders", "inventory", "partners"
+    val selectedPartnerId: Int? = null, // Selected partner ID for redirect/portfolio view
     val isDarkMode: Boolean = false,
     val isSetupCompleted: Boolean = false,
     val isLocationPermissionGranted: Boolean = false,
@@ -69,7 +71,10 @@ data class ErpUiState(
         "Welcome to Abielan ERP! Enter your profile details today.",
         "Tip: Check the Sales Orders tab to track live hourly billable consulting jobs."
     ),
-    val continuationDurationMinutes: Int = -1 // -1 means Use Original Template duration, e.g. 15, 30, 60, 120, etc.
+    val continuationDurationMinutes: Int = -1, // -1 means Use Original Template duration, e.g. 15, 30, 60, 120, etc.
+    val isAiAssistantEnabled: Boolean = true,
+    val aiOverlaySize: String = "Medium", // "Small", "Medium", "Large"
+    val aiOverlayMovingSpace: String = "Full Screen" // "Full Screen", "Within Margins"
 )
 
 class ErpViewModel(application: Application) : AndroidViewModel(application) {
@@ -94,6 +99,7 @@ class ErpViewModel(application: Application) : AndroidViewModel(application) {
     val documents: StateFlow<List<BusinessDocument>>
     val recurringSOs: StateFlow<List<RecurringSO>>
     val items: StateFlow<List<ErpItem>>
+    val partners: StateFlow<List<Partner>>
 
     private var timerJob: Job? = null
     private var dbPersistCounter = 0
@@ -105,18 +111,24 @@ class ErpViewModel(application: Application) : AndroidViewModel(application) {
             pendingTabFromIntent = null
         }
         val database = AppDatabase.getDatabase(application)
-        repository = DocumentRepository(database.documentDao(), database.itemDao())
+        repository = DocumentRepository(database.documentDao(), database.itemDao(), database.partnerDao())
 
         // Load setup preferences on startup
         val sharedPrefs = application.getSharedPreferences("abielan_setup_prefs", Context.MODE_PRIVATE)
         val isCompleted = sharedPrefs.getBoolean("is_setup_completed", false)
         val isDark = sharedPrefs.getBoolean("is_dark_mode", false)
         val contMinutes = sharedPrefs.getInt("continuation_duration_minutes", -1)
+        val aiEnabled = sharedPrefs.getBoolean("is_ai_assistant_enabled", true)
+        val aiSize = sharedPrefs.getString("ai_overlay_size", "Medium") ?: "Medium"
+        val aiSpace = sharedPrefs.getString("ai_overlay_moving_space", "Full Screen") ?: "Full Screen"
         _uiState.update { 
             it.copy(
                 isSetupCompleted = isCompleted,
                 isDarkMode = isDark,
-                continuationDurationMinutes = contMinutes
+                continuationDurationMinutes = contMinutes,
+                isAiAssistantEnabled = aiEnabled,
+                aiOverlaySize = aiSize,
+                aiOverlayMovingSpace = aiSpace
             )
         }
 
@@ -160,6 +172,13 @@ class ErpViewModel(application: Application) : AndroidViewModel(application) {
             )
 
         items = repository.allItems
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = emptyList()
+            )
+
+        partners = repository.allPartners
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(5000),
@@ -367,6 +386,88 @@ class ErpViewModel(application: Application) : AndroidViewModel(application) {
             )
         )
         initialItems.forEach { repository.insertItem(it) }
+
+        // Seed Zoho-like complete partners list matching current document clients/vendors
+        val initialPartners = listOf(
+            Partner(
+                name = "Apple Retail Inc",
+                type = "CLIENT",
+                email = "procurement@apple.com",
+                phone = "+1 408-996-1010",
+                company = "Apple Inc.",
+                gstin = "22AAPCA8559D1Z4",
+                address = "One Apple Park Way, Cupertino, CA 95014",
+                notes = "Primary client for iOS/Android enterprise designs and consultation feeds.",
+                status = "Active"
+            ),
+            Partner(
+                name = "Google Operations LLC",
+                type = "CLIENT",
+                email = "billing-dev@google.com",
+                phone = "+1 650-253-0000",
+                company = "Google LLC",
+                gstin = "27AAACG0081H1Z9",
+                address = "1600 Amphitheatre Pkwy, Mountain View, CA 94043",
+                notes = "Engaged for ML research, pipeline tuning, and Gemini workspace licensing audits.",
+                status = "Active"
+            ),
+            Partner(
+                name = "SpaceX Launch Systems",
+                type = "CLIENT",
+                email = "vendor-desk@spacex.com",
+                phone = "+1 310-363-6000",
+                company = "Space Exploration Technologies Corp.",
+                gstin = "33AAPCS0293J1Z2",
+                address = "1 Rocket Rd, Hawthorne, CA 90250",
+                notes = "Design system deliverables for mission telemetry widgets on tablet displays.",
+                status = "Active"
+            ),
+            Partner(
+                name = "Tesla Motors",
+                type = "CLIENT",
+                email = "contracts@tesla.com",
+                phone = "+1 512-516-8324",
+                company = "Tesla Motors, Inc.",
+                gstin = "24AAPCT4929A1Z7",
+                address = "1 Tesla Road, Austin, TX 78725",
+                notes = "Ongoing telemetry design and hourly consultation logs.",
+                status = "Active"
+            ),
+            Partner(
+                name = "Reliance Industries",
+                type = "CLIENT",
+                email = "partner.desk@ril.com",
+                phone = "+91 22 2278 5000",
+                company = "Reliance Industries Ltd",
+                gstin = "27AAACR1234A1Z9",
+                address = "Maker Chambers IV, Nariman Point, Mumbai 400021",
+                notes = "Commercial accounting support and strategic ledger verification.",
+                status = "Active"
+            ),
+            Partner(
+                name = "DLF Office Parks",
+                type = "VENDOR",
+                email = "lease@dlf.in",
+                phone = "+91 124 439 6000",
+                company = "DLF Commercial Developers Ltd",
+                gstin = "06AAACD9902K2ZA",
+                address = "DLF CyberCity, Phase III, Gurugram, Haryana 122002",
+                notes = "Lessor for Wing-B commercial layout space lease.",
+                status = "Active"
+            ),
+            Partner(
+                name = "NVIDIA Hardware Inc",
+                type = "VENDOR",
+                email = "supply-support@nvidia.com",
+                phone = "+1 408-486-2000",
+                company = "NVIDIA Corporation",
+                gstin = "27AAPCN4200M1ZC",
+                address = "2788 San Tomas Expressway, Santa Clara, CA 95051",
+                notes = "Primary vendor for virtual GPU clusters and hardware server presets.",
+                status = "Active"
+            )
+        )
+        initialPartners.forEach { repository.insertPartner(it) }
     }
 
     private fun startTimerLoop() {
@@ -576,10 +677,69 @@ class ErpViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.update { it.copy(activeTab = tab) }
     }
 
+    fun setSalesTab(tab: String) {
+        _uiState.update { it.copy(activeSalesTab = tab) }
+    }
+
+    fun selectPartner(id: Int?) {
+        _uiState.update { it.copy(selectedPartnerId = id) }
+    }
+
+    fun selectAndNavigateToPartnerProfile(partnerName: String, partnerType: String = "") {
+        viewModelScope.launch {
+            // Retrieve latest partners list
+            val currentList = partners.value
+            val match = currentList.firstOrNull { it.name.trim().lowercase() == partnerName.trim().lowercase() }
+            if (match != null) {
+                _uiState.update { 
+                    it.copy(
+                        activeTab = "Sales",
+                        activeSalesTab = "partners",
+                        selectedPartnerId = match.id
+                    )
+                }
+            } else {
+                // If partner doesn't exist, auto-create them as requested!
+                val cleanType = if (partnerType.uppercase() == "VENDOR") "VENDOR" else "CLIENT"
+                val newPartner = Partner(
+                    name = partnerName,
+                    type = cleanType,
+                    status = "Active"
+                )
+                val newId = repository.insertPartner(newPartner)
+                _uiState.update {
+                    it.copy(
+                        activeTab = "Sales",
+                        activeSalesTab = "partners",
+                        selectedPartnerId = newId.toInt()
+                    )
+                }
+            }
+        }
+    }
+
     fun setThemeMode(isDark: Boolean) {
         val sharedPrefs = getApplication<Application>().getSharedPreferences("abielan_setup_prefs", Context.MODE_PRIVATE)
         sharedPrefs.edit().putBoolean("is_dark_mode", isDark).apply()
         _uiState.update { it.copy(isDarkMode = isDark) }
+    }
+
+    fun setAiAssistantEnabled(enabled: Boolean) {
+        val sharedPrefs = getApplication<Application>().getSharedPreferences("abielan_setup_prefs", Context.MODE_PRIVATE)
+        sharedPrefs.edit().putBoolean("is_ai_assistant_enabled", enabled).apply()
+        _uiState.update { it.copy(isAiAssistantEnabled = enabled) }
+    }
+
+    fun setAiOverlaySize(size: String) {
+        val sharedPrefs = getApplication<Application>().getSharedPreferences("abielan_setup_prefs", Context.MODE_PRIVATE)
+        sharedPrefs.edit().putString("ai_overlay_size", size).apply()
+        _uiState.update { it.copy(aiOverlaySize = size) }
+    }
+
+    fun setAiOverlayMovingSpace(space: String) {
+        val sharedPrefs = getApplication<Application>().getSharedPreferences("abielan_setup_prefs", Context.MODE_PRIVATE)
+        sharedPrefs.edit().putString("ai_overlay_moving_space", space).apply()
+        _uiState.update { it.copy(aiOverlayMovingSpace = space) }
     }
 
     fun completeSetup(isDarkMode: Boolean, isLocationGranted: Boolean, isNotificationGranted: Boolean) {
@@ -1176,7 +1336,8 @@ class ErpViewModel(application: Application) : AndroidViewModel(application) {
         description: String,
         trackStock: Boolean = false,
         stockQuantity: Int = 0,
-        lowStockThreshold: Int = 5
+        lowStockThreshold: Int = 5,
+        vendorName: String = ""
     ) {
         viewModelScope.launch {
             val item = ErpItem(
@@ -1187,7 +1348,8 @@ class ErpViewModel(application: Application) : AndroidViewModel(application) {
                 description = description,
                 trackStock = trackStock,
                 stockQuantity = stockQuantity,
-                lowStockThreshold = lowStockThreshold
+                lowStockThreshold = lowStockThreshold,
+                vendorName = vendorName
             )
             repository.insertItem(item)
             _uiState.update {
@@ -1226,6 +1388,56 @@ class ErpViewModel(application: Application) : AndroidViewModel(application) {
             repository.deleteItem(item)
             _uiState.update {
                 it.copy(systemNotifications = listOf("Item preset deleted: ${item.name}") + it.systemNotifications)
+            }
+        }
+    }
+
+    // --- Partner (Client/Vendor) CRUD Actions ---
+
+    fun createNewPartner(
+        name: String,
+        type: String, // "CLIENT", "VENDOR"
+        email: String,
+        phone: String,
+        company: String,
+        gstin: String,
+        address: String,
+        notes: String,
+        status: String = "Active"
+    ) {
+        viewModelScope.launch {
+            val partner = Partner(
+                name = name,
+                type = type,
+                email = email,
+                phone = phone,
+                company = company,
+                gstin = gstin,
+                address = address,
+                notes = notes,
+                status = status
+            )
+            repository.insertPartner(partner)
+            _uiState.update {
+                it.copy(systemNotifications = listOf("Contact profile added: $name ($type)") + it.systemNotifications)
+            }
+        }
+    }
+
+    fun updatePartnerProfile(partner: Partner) {
+        viewModelScope.launch {
+            repository.updatePartner(partner)
+            _uiState.update {
+                it.copy(systemNotifications = listOf("Contact profile updated: ${partner.name}") + it.systemNotifications)
+            }
+        }
+    }
+
+    fun removePartnerProfile(partner: Partner) {
+        viewModelScope.launch {
+            repository.deletePartner(partner)
+            _uiState.update {
+                it.copy(systemNotifications = listOf("Contact profile deleted: ${partner.name}") + it.systemNotifications)
             }
         }
     }

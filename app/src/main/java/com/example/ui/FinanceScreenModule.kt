@@ -9,6 +9,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -22,6 +23,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -58,7 +60,7 @@ import android.os.Environment
 import java.io.File
 import java.io.FileOutputStream
 
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @Composable
 fun FinanceScreenModule(viewModel: ErpViewModel) {
     val state by viewModel.uiState.collectAsState()
@@ -201,500 +203,525 @@ fun FinanceScreenModule(viewModel: ErpViewModel) {
         }
     }
 
-    val pageScrollState = rememberScrollState()
-    Column(
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(pageScrollState)
             .nestedScroll(nestedScrollConnection)
     ) {
-        // --- LEDGER HEADCONTROLLERS ---
-        Column(modifier = Modifier.padding(16.dp)) {
-            val animatedHeight = with(density) { (titleHeightPx + titleOffsetPx).coerceAtLeast(0f).toDp() }
-            val alpha = ((titleHeightPx + titleOffsetPx) / titleHeightPx).coerceIn(0f, 1f)
+        item {
+            // --- LEDGER HEADCONTROLLERS ---
+            Column(modifier = Modifier.padding(16.dp)) {
+                val animatedHeight = with(density) { (titleHeightPx + titleOffsetPx).coerceAtLeast(0f).toDp() }
+                val alpha = ((titleHeightPx + titleOffsetPx) / titleHeightPx).coerceIn(0f, 1f)
 
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 0.dp)
+                        .height(animatedHeight)
+                        .graphicsLayer {
+                            this.alpha = alpha
+                            this.translationY = titleOffsetPx * 0.4f
+                        }
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(text = "Enterprise Finance Ledger", fontSize = 20.sp, fontWeight = FontWeight.Black)
+                            Text(text = "Manage dual-ledger documents, generate statements, view previews", fontSize = 11.sp, color = MaterialTheme.colorScheme.secondary)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+                }
+            }
+        }
+
+        stickyHeader {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(min = 0.dp)
-                    .height(animatedHeight)
-                    .graphicsLayer {
-                        this.alpha = alpha
-                        this.translationY = titleOffsetPx * 0.4f
-                    }
+                    .background(MaterialTheme.colorScheme.background)
+                    .padding(horizontal = 16.dp, vertical = 6.dp)
             ) {
+                // --- SEARCH BAR & TOGGLE & ADD BUTTON ---
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // Search box
+                    Row(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(38.dp)
+                            .border(1.dp, if (state.isDarkMode) MaterialTheme.colorScheme.outlineVariant else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                            .background(if (state.isDarkMode) MaterialTheme.colorScheme.surface else Color.White, RoundedCornerShape(8.dp))
+                            .padding(horizontal = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Search,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = if (state.isDarkMode) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f) else MaterialTheme.colorScheme.secondary
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Box(modifier = Modifier.weight(1f)) {
+                            if (state.searchQuery.isEmpty()) {
+                                Text(
+                                    text = "Search Client or Title...",
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                )
+                            }
+                            BasicTextField(
+                                value = state.searchQuery,
+                                onValueChange = { viewModel.changeSearchQuery(it) },
+                                textStyle = MaterialTheme.typography.bodyMedium.copy(
+                                    fontSize = 13.sp,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                ),
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                        if (state.searchQuery.isNotEmpty()) {
+                            IconButton(
+                                onClick = { viewModel.changeSearchQuery("") },
+                                modifier = Modifier.size(24.dp)
+                            ) {
+                                Icon(Icons.Filled.Close, contentDescription = null, modifier = Modifier.size(14.dp))
+                            }
+                        }
+                    }
+
+                    // Advanced Filter Button
+                    OutlinedButton(
+                        onClick = { showAdvancedFilterDialog = true },
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(0.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = if (filtersActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f) else (if (state.isDarkMode) MaterialTheme.colorScheme.surface else Color.White),
+                            contentColor = if (filtersActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                        ),
+                        border = BorderStroke(
+                            1.dp,
+                            if (filtersActive) MaterialTheme.colorScheme.primary else (if (state.isDarkMode) MaterialTheme.colorScheme.outlineVariant else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+                        ),
+                        modifier = Modifier.size(38.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.FilterList,
+                            contentDescription = "Filters",
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+
+                    // Grid List Toggle button
+                    OutlinedButton(
+                        onClick = { viewModel.toggleListGrid() },
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(0.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = if (state.isDarkMode) MaterialTheme.colorScheme.surface else Color.White,
+                            contentColor = MaterialTheme.colorScheme.primary
+                        ),
+                        border = BorderStroke(
+                            1.dp,
+                            if (state.isDarkMode) MaterialTheme.colorScheme.outlineVariant else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                        ),
+                        modifier = Modifier.size(38.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (state.isListGridToggle) Icons.Filled.GridView else Icons.Filled.List,
+                            contentDescription = "Toggle Layout",
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+
+                    // Add Document button
+                    Button(
+                        onClick = { showAddDocModal = true },
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(0.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = Color.White
+                        ),
+                        modifier = Modifier.size(38.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Add, 
+                            contentDescription = "Add Document", 
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // --- TYPE CATEGORY FILTER TABS ---
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 14.dp)
+                            .horizontalScroll(horizontalFilterScroll),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        listOf("ALL", "QUOTE", "INVOICE", "BILL", "PO", "SO").forEach { tab ->
+                            val isSelected = state.activeFilterTab == tab
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = { viewModel.setActiveFilterTab(tab) },
+                                label = { Text(tab, fontSize = 11.sp, fontWeight = FontWeight.Bold) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    containerColor = if (state.isDarkMode) MaterialTheme.colorScheme.surface else Color.White,
+                                    labelColor = if (state.isDarkMode) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.primary,
+                                    selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                                ),
+                                border = FilterChipDefaults.filterChipBorder(
+                                    enabled = true,
+                                    selected = isSelected,
+                                    borderColor = if (state.isDarkMode) MaterialTheme.colorScheme.outlineVariant else MaterialTheme.colorScheme.outline,
+                                    selectedBorderColor = MaterialTheme.colorScheme.primary
+                                )
+                            )
+                        }
+                    }
+
+                    // Left fade gradient & scroll chevron indicator
+                    if (horizontalFilterScroll.value > 0) {
+                        Row(
+                            modifier = Modifier
+                                .align(Alignment.CenterStart)
+                                .background(
+                                    brush = Brush.horizontalGradient(
+                                        colors = listOf(
+                                            MaterialTheme.colorScheme.background,
+                                            MaterialTheme.colorScheme.background.copy(alpha = 0.8f),
+                                            Color.Transparent
+                                        )
+                                    )
+                                )
+                                .padding(end = 6.dp)
+                                .height(42.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.ChevronLeft,
+                                contentDescription = "Scroll Left Indicator",
+                                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+
+                    // Right fade gradient & scroll chevron indicator
+                    if (horizontalFilterScroll.value < horizontalFilterScroll.maxValue) {
+                        Row(
+                            modifier = Modifier
+                                .align(Alignment.CenterEnd)
+                                .background(
+                                    brush = Brush.horizontalGradient(
+                                        colors = listOf(
+                                            Color.Transparent,
+                                            MaterialTheme.colorScheme.background.copy(alpha = 0.8f),
+                                            MaterialTheme.colorScheme.background
+                                        )
+                                    )
+                                )
+                                .padding(start = 6.dp)
+                                .height(42.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.ChevronRight,
+                                contentDescription = "Scroll Right Indicator",
+                                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Sort Selector Row
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column {
-                        Text(text = "Enterprise Finance Ledger", fontSize = 20.sp, fontWeight = FontWeight.Black)
-                        Text(text = "Manage dual-ledger documents, generate statements, view previews", fontSize = 11.sp, color = MaterialTheme.colorScheme.secondary)
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(10.dp))
-            }
-
-            // --- SEARCH BAR & TOGGLE & ADD BUTTON ---
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                // Search box
-                Row(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(38.dp)
-                        .border(1.dp, if (state.isDarkMode) MaterialTheme.colorScheme.outlineVariant else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
-                        .background(if (state.isDarkMode) MaterialTheme.colorScheme.surface else Color.White, RoundedCornerShape(8.dp))
-                        .padding(horizontal = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Search,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = if (state.isDarkMode) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f) else MaterialTheme.colorScheme.secondary
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Box(modifier = Modifier.weight(1f)) {
-                        if (state.searchQuery.isEmpty()) {
-                            Text(
-                                text = "Search Client or Title...",
-                                fontSize = 13.sp,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                            )
-                        }
-                        BasicTextField(
-                            value = state.searchQuery,
-                            onValueChange = { viewModel.changeSearchQuery(it) },
-                            textStyle = MaterialTheme.typography.bodyMedium.copy(
-                                fontSize = 13.sp,
-                                color = MaterialTheme.colorScheme.onSurface
-                            ),
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth()
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            "Showing ${sortedDocs.size} records",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.secondary
                         )
-                    }
-                    if (state.searchQuery.isNotEmpty()) {
-                        IconButton(
-                            onClick = { viewModel.changeSearchQuery("") },
-                            modifier = Modifier.size(24.dp)
-                        ) {
-                            Icon(Icons.Filled.Close, contentDescription = null, modifier = Modifier.size(14.dp))
-                        }
-                    }
-                }
-
-                // Advanced Filter Button
-                OutlinedButton(
-                    onClick = { showAdvancedFilterDialog = true },
-                    shape = RoundedCornerShape(8.dp),
-                    contentPadding = PaddingValues(0.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = if (filtersActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f) else (if (state.isDarkMode) MaterialTheme.colorScheme.surface else Color.White),
-                        contentColor = if (filtersActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                    ),
-                    border = BorderStroke(
-                        1.dp,
-                        if (filtersActive) MaterialTheme.colorScheme.primary else (if (state.isDarkMode) MaterialTheme.colorScheme.outlineVariant else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
-                    ),
-                    modifier = Modifier.size(38.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.FilterList,
-                        contentDescription = "Filters",
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-
-                // Grid List Toggle button
-                OutlinedButton(
-                    onClick = { viewModel.toggleListGrid() },
-                    shape = RoundedCornerShape(8.dp),
-                    contentPadding = PaddingValues(0.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = if (state.isDarkMode) MaterialTheme.colorScheme.surface else Color.White,
-                        contentColor = MaterialTheme.colorScheme.primary
-                    ),
-                    border = BorderStroke(
-                        1.dp,
-                        if (state.isDarkMode) MaterialTheme.colorScheme.outlineVariant else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
-                    ),
-                    modifier = Modifier.size(38.dp)
-                ) {
-                    Icon(
-                        imageVector = if (state.isListGridToggle) Icons.Filled.GridView else Icons.Filled.List,
-                        contentDescription = "Toggle Layout",
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-
-                // Add Document button
-                Button(
-                    onClick = { showAddDocModal = true },
-                    shape = RoundedCornerShape(8.dp),
-                    contentPadding = PaddingValues(0.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = Color.White
-                    ),
-                    modifier = Modifier.size(38.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Add, 
-                        contentDescription = "Add Document", 
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // --- TYPE CATEGORY FILTER TABS ---
-            Box(
-                modifier = Modifier.fillMaxWidth(),
-                contentAlignment = Alignment.CenterStart
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 14.dp)
-                        .horizontalScroll(horizontalFilterScroll),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    listOf("ALL", "QUOTE", "INVOICE", "BILL", "PO", "SO").forEach { tab ->
-                        val isSelected = state.activeFilterTab == tab
-                        FilterChip(
-                            selected = isSelected,
-                            onClick = { viewModel.setActiveFilterTab(tab) },
-                            label = { Text(tab, fontSize = 11.sp, fontWeight = FontWeight.Bold) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                containerColor = if (state.isDarkMode) MaterialTheme.colorScheme.surface else Color.White,
-                                labelColor = if (state.isDarkMode) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.primary,
-                                selectedContainerColor = MaterialTheme.colorScheme.primary,
-                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary
-                            ),
-                            border = FilterChipDefaults.filterChipBorder(
-                                enabled = true,
-                                selected = isSelected,
-                                borderColor = if (state.isDarkMode) MaterialTheme.colorScheme.outlineVariant else MaterialTheme.colorScheme.outline,
-                                selectedBorderColor = MaterialTheme.colorScheme.primary
-                            )
-                        )
-                    }
-                }
-
-                // Left fade gradient & scroll chevron indicator
-                if (horizontalFilterScroll.value > 0) {
-                    Row(
-                        modifier = Modifier
-                            .align(Alignment.CenterStart)
-                            .background(
-                                brush = Brush.horizontalGradient(
-                                    colors = listOf(
-                                        MaterialTheme.colorScheme.background,
-                                        MaterialTheme.colorScheme.background.copy(alpha = 0.8f),
-                                        Color.Transparent
+                        if (filtersActive) {
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Box(
+                                modifier = Modifier
+                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f), RoundedCornerShape(4.dp))
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Filled.FilterAlt,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(10.dp)
                                     )
-                                )
-                            )
-                            .padding(end = 6.dp)
-                            .height(42.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.ChevronLeft,
-                            contentDescription = "Scroll Left Indicator",
-                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-                }
-
-                // Right fade gradient & scroll chevron indicator
-                if (horizontalFilterScroll.value < horizontalFilterScroll.maxValue) {
-                    Row(
-                        modifier = Modifier
-                            .align(Alignment.CenterEnd)
-                            .background(
-                                brush = Brush.horizontalGradient(
-                                    colors = listOf(
-                                        Color.Transparent,
-                                        MaterialTheme.colorScheme.background.copy(alpha = 0.8f),
-                                        MaterialTheme.colorScheme.background
+                                    Spacer(modifier = Modifier.width(2.dp))
+                                    Text(
+                                        "Filtered",
+                                        fontSize = 8.sp,
+                                        fontWeight = FontWeight.Black,
+                                        color = MaterialTheme.colorScheme.primary
                                     )
-                                )
-                            )
-                            .padding(start = 6.dp)
-                            .height(42.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.ChevronRight,
-                            contentDescription = "Scroll Right Indicator",
-                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Sort Selector Row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        "Showing ${sortedDocs.size} records",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.secondary
-                    )
-                    if (filtersActive) {
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Box(
-                            modifier = Modifier
-                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f), RoundedCornerShape(4.dp))
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Filled.FilterAlt,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(10.dp)
-                                )
-                                Spacer(modifier = Modifier.width(2.dp))
-                                Text(
-                                    "Filtered",
-                                    fontSize = 8.sp,
-                                    fontWeight = FontWeight.Black,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                        }
-                    }
-                }
-
-                // Inline sort controls
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Sort: ", fontSize = 11.sp, color = MaterialTheme.colorScheme.secondary)
-                    val sortLabel = when (state.activeSortMode) {
-                        "DATE_DESC" -> "Newest"
-                        "DATE_ASC" -> "Oldest"
-                        "AMOUNT_DESC" -> "Highest Sum"
-                        "AMOUNT_ASC" -> "Lowest Sum"
-                        else -> "Default"
-                    }
-                    Text(
-                        text = "$sortLabel ▼",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Black,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier
-                            .clickable {
-                                val nextSort = when (state.activeSortMode) {
-                                    "DATE_DESC" -> "AMOUNT_DESC"
-                                    "AMOUNT_DESC" -> "AMOUNT_ASC"
-                                    "AMOUNT_ASC" -> "DATE_ASC"
-                                    else -> "DATE_DESC"
                                 }
-                                viewModel.changeSortMode(nextSort)
                             }
-                            .padding(4.dp)
-                    )
+                        }
+                    }
+
+                    // Inline sort controls
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("Sort: ", fontSize = 11.sp, color = MaterialTheme.colorScheme.secondary)
+                        val sortLabel = when (state.activeSortMode) {
+                            "DATE_DESC" -> "Newest"
+                            "DATE_ASC" -> "Oldest"
+                            "AMOUNT_DESC" -> "Highest Sum"
+                            "AMOUNT_ASC" -> "Lowest Sum"
+                            else -> "Default"
+                        }
+                        Text(
+                            text = "$sortLabel ▼",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Black,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier
+                                .clickable {
+                                    val nextSort = when (state.activeSortMode) {
+                                        "DATE_DESC" -> "AMOUNT_DESC"
+                                        "AMOUNT_DESC" -> "AMOUNT_ASC"
+                                        "AMOUNT_ASC" -> "DATE_ASC"
+                                        else -> "DATE_DESC"
+                                    }
+                                    viewModel.changeSortMode(nextSort)
+                                }
+                                .padding(4.dp)
+                        )
+                    }
                 }
             }
         }
 
-        // --- RECORDS GRAPH VIEW ---
-        if (sortedDocs.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        imageVector = Icons.Filled.Inbox, 
-                        contentDescription = null, 
-                        modifier = Modifier.size(48.dp), 
-                        tint = MaterialTheme.colorScheme.secondary
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text("No documents matches filters.", color = MaterialTheme.colorScheme.secondary)
-                }
-            }
-        } else {
-            if (state.isListGridToggle) {
-                // Corporate Table View with Scroll and Pagination
-                val scrollState = rememberScrollState()
-                val containerBg = if (state.isDarkMode) Color(0xFF131926).copy(alpha = 0.4f) else Color.White.copy(alpha = 0.6f)
-                val borderColor = if (state.isDarkMode) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.05f)
+        item {
+            Column(modifier = Modifier.padding(top = 10.dp)) {
+                // --- RECORDS GRAPH VIEW ---
+                if (sortedDocs.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxWidth().padding(top = 40.dp), contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                imageVector = Icons.Filled.Inbox, 
+                                contentDescription = null, 
+                                modifier = Modifier.size(48.dp), 
+                                tint = MaterialTheme.colorScheme.secondary
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text("No documents matches filters.", color = MaterialTheme.colorScheme.secondary)
+                        }
+                    }
+                } else {
+                    if (state.isListGridToggle) {
+                        // Corporate Table View with Scroll and Pagination
+                        val scrollState = rememberScrollState()
+                        val containerBg = if (state.isDarkMode) Color(0xFF131926).copy(alpha = 0.4f) else Color.White.copy(alpha = 0.6f)
+                        val borderColor = if (state.isDarkMode) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.05f)
 
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                        .border(1.dp, borderColor, RoundedCornerShape(12.dp)),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = containerBg)
-                ) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth().wrapContentHeight()
-                    ) {
-                        Box(
+                        Card(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .wrapContentHeight()
+                                .padding(horizontal = 16.dp)
+                                .border(1.dp, borderColor, RoundedCornerShape(12.dp)),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = containerBg)
+                        ) {
+                            Column(
+                                modifier = Modifier.fillMaxWidth().wrapContentHeight()
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .wrapContentHeight()
+                                ) {
+                                    Column(
+                                        modifier = Modifier
+                                            .wrapContentHeight()
+                                            .horizontalScroll(scrollState)
+                                    ) {
+                                        TableHeaderRow(isDark = state.isDarkMode)
+                                        
+                                        Column(
+                                            modifier = Modifier
+                                                .width(1050.dp)
+                                                .padding(bottom = 16.dp),
+                                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                                        ) {
+                                            paginatedDocs.forEach { doc ->
+                                                TableRowItem(
+                                                    doc = doc,
+                                                    onCardClick = { selectedPdfDoc = doc },
+                                                    onDeleteClick = { viewModel.deleteDocument(doc) },
+                                                    onEditClick = { docToEdit = doc },
+                                                    onStatusUpdate = { newStatus -> viewModel.updateDocumentStatus(doc.id, newStatus) },
+                                                    onConvertToInvoice = { viewModel.convertQuoteToInvoice(doc.id) },
+                                                    isDarkMode = state.isDarkMode,
+                                                    onPartnerClick = { name, type ->
+                                                        viewModel.selectAndNavigateToPartnerProfile(name, type)
+                                                    }
+                                                )
+                                                HorizontalDivider(
+                                                    color = borderColor,
+                                                    thickness = 1.dp
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // Compact horizontal scrollbar, attached right between the table and footer
+                                TableHorizontalScrollIndicator(
+                                    scrollState = scrollState,
+                                    isDark = state.isDarkMode,
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp)
+                                )
+
+                                HorizontalDivider(color = borderColor, thickness = 1.dp)
+
+                                // Table Pagination Control integrated inside the same card
+                                TablePaginationControl(
+                                    currentPage = safeCurrentPage,
+                                    totalPages = totalPages,
+                                    totalItems = sortedDocs.size,
+                                    itemsPerPage = itemsPerPage,
+                                    startIndex = startIndex,
+                                    endIndex = endIndex,
+                                    onPageChange = { currentPage = it },
+                                    onItemsPerPageChange = { 
+                                        itemsPerPage = it 
+                                        currentPage = 1
+                                    },
+                                    isDark = state.isDarkMode,
+                                    modifier = Modifier.padding(8.dp)
+                                )
+                            }
+                        }
+                    } else {
+                        // Grid View that scales dynamically based on width
+                        val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+                        val screenWidth = configuration.screenWidthDp
+                        val isWideScreen = screenWidth >= 600
+                        val isCompactMobile = screenWidth < 400
+                        val containerBg = if (state.isDarkMode) Color(0xFF131926).copy(alpha = 0.4f) else Color.White.copy(alpha = 0.6f)
+                        val borderColor = if (state.isDarkMode) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.05f)
+
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp)
+                                .border(1.dp, borderColor, RoundedCornerShape(12.dp)),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = containerBg)
                         ) {
                             Column(
                                 modifier = Modifier
+                                    .fillMaxWidth()
                                     .wrapContentHeight()
-                                    .horizontalScroll(scrollState)
+                                    .padding(12.dp)
                             ) {
-                                TableHeaderRow(isDark = state.isDarkMode)
-                                
+                                val numColumns = if (isWideScreen) 3 else if (isCompactMobile) 1 else 2
+                                val docChunks = paginatedDocs.chunked(numColumns)
+
                                 Column(
-                                    modifier = Modifier
-                                        .width(1050.dp)
-                                        .padding(bottom = 16.dp),
-                                    verticalArrangement = Arrangement.spacedBy(2.dp)
-                                ) {
-                                    paginatedDocs.forEach { doc ->
-                                        TableRowItem(
-                                            doc = doc,
-                                            onCardClick = { selectedPdfDoc = doc },
-                                            onDeleteClick = { viewModel.deleteDocument(doc) },
-                                            onEditClick = { docToEdit = doc },
-                                            onStatusUpdate = { newStatus -> viewModel.updateDocumentStatus(doc.id, newStatus) },
-                                            onConvertToInvoice = { viewModel.convertQuoteToInvoice(doc.id) },
-                                            isDarkMode = state.isDarkMode
-                                        )
-                                        HorizontalDivider(
-                                            color = borderColor,
-                                            thickness = 1.dp
-                                        )
-                                    }
-                                }
-                            }
-                        }
-
-                        // Compact horizontal scrollbar, attached right between the table and footer
-                        TableHorizontalScrollIndicator(
-                            scrollState = scrollState,
-                            isDark = state.isDarkMode,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp)
-                        )
-
-                        HorizontalDivider(color = borderColor, thickness = 1.dp)
-
-                        // Table Pagination Control integrated inside the same card
-                        TablePaginationControl(
-                            currentPage = safeCurrentPage,
-                            totalPages = totalPages,
-                            totalItems = sortedDocs.size,
-                            itemsPerPage = itemsPerPage,
-                            startIndex = startIndex,
-                            endIndex = endIndex,
-                            onPageChange = { currentPage = it },
-                            onItemsPerPageChange = { 
-                                itemsPerPage = it 
-                                currentPage = 1
-                            },
-                            isDark = state.isDarkMode,
-                            modifier = Modifier.padding(8.dp)
-                        )
-                    }
-                }
-            } else {
-                // Grid View that scales dynamically based on width
-                val configuration = androidx.compose.ui.platform.LocalConfiguration.current
-                val screenWidth = configuration.screenWidthDp
-                val isWideScreen = screenWidth >= 600
-                val isCompactMobile = screenWidth < 400
-                val containerBg = if (state.isDarkMode) Color(0xFF131926).copy(alpha = 0.4f) else Color.White.copy(alpha = 0.6f)
-                val borderColor = if (state.isDarkMode) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.05f)
-
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                        .border(1.dp, borderColor, RoundedCornerShape(12.dp)),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = containerBg)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .wrapContentHeight()
-                            .padding(12.dp)
-                    ) {
-                        val numColumns = if (isWideScreen) 3 else if (isCompactMobile) 1 else 2
-                        val docChunks = paginatedDocs.chunked(numColumns)
-
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            docChunks.forEach { rowDocs ->
-                                Row(
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                    verticalArrangement = Arrangement.spacedBy(16.dp)
                                 ) {
-                                    rowDocs.forEach { doc ->
-                                        Box(modifier = Modifier.weight(1f)) {
-                                            DocumentItemCard(
-                                                doc = doc,
-                                                onCardClick = { selectedPdfDoc = doc },
-                                                onDeleteClick = { viewModel.deleteDocument(doc) },
-                                                onEditClick = { docToEdit = doc },
-                                                onStatusUpdate = { newStatus -> viewModel.updateDocumentStatus(doc.id, newStatus) },
-                                                onConvertToInvoice = { viewModel.convertQuoteToInvoice(doc.id) },
-                                                isDarkMode = state.isDarkMode
-                                            )
-                                        }
-                                    }
-                                    val dummyCount = numColumns - rowDocs.size
-                                    if (dummyCount > 0) {
-                                        repeat(dummyCount) {
-                                            Spacer(modifier = Modifier.weight(1f))
+                                    docChunks.forEach { rowDocs ->
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                        ) {
+                                            rowDocs.forEach { doc ->
+                                                Box(modifier = Modifier.weight(1f)) {
+                                                    DocumentItemCard(
+                                                        doc = doc,
+                                                        onCardClick = { selectedPdfDoc = doc },
+                                                        onDeleteClick = { viewModel.deleteDocument(doc) },
+                                                        onEditClick = { docToEdit = doc },
+                                                        onStatusUpdate = { newStatus -> viewModel.updateDocumentStatus(doc.id, newStatus) },
+                                                        onConvertToInvoice = { viewModel.convertQuoteToInvoice(doc.id) },
+                                                        isDarkMode = state.isDarkMode,
+                                                        onPartnerClick = { name, type ->
+                                                            viewModel.selectAndNavigateToPartnerProfile(name, type)
+                                                        }
+                                                    )
+                                                }
+                                            }
+                                            val dummyCount = numColumns - rowDocs.size
+                                            if (dummyCount > 0) {
+                                                repeat(dummyCount) {
+                                                    Spacer(modifier = Modifier.weight(1f))
+                                                }
+                                            }
                                         }
                                     }
                                 }
+
+                                Spacer(modifier = Modifier.height(14.dp))
+                                HorizontalDivider(color = borderColor, thickness = 1.dp)
+                                Spacer(modifier = Modifier.height(6.dp))
+
+                                // Table Pagination Control integrated inside the same card
+                                TablePaginationControl(
+                                    currentPage = safeCurrentPage,
+                                    totalPages = totalPages,
+                                    totalItems = sortedDocs.size,
+                                    itemsPerPage = itemsPerPage,
+                                    startIndex = startIndex,
+                                    endIndex = endIndex,
+                                    onPageChange = { currentPage = it },
+                                    onItemsPerPageChange = { 
+                                        itemsPerPage = it 
+                                        currentPage = 1
+                                    },
+                                    isDark = state.isDarkMode,
+                                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                                )
                             }
                         }
-
-                        Spacer(modifier = Modifier.height(14.dp))
-                        HorizontalDivider(color = borderColor, thickness = 1.dp)
-                        Spacer(modifier = Modifier.height(6.dp))
-
-                        // Table Pagination Control integrated inside the same card
-                        TablePaginationControl(
-                            currentPage = safeCurrentPage,
-                            totalPages = totalPages,
-                            totalItems = sortedDocs.size,
-                            itemsPerPage = itemsPerPage,
-                            startIndex = startIndex,
-                            endIndex = endIndex,
-                            onPageChange = { currentPage = it },
-                            onItemsPerPageChange = { 
-                                itemsPerPage = it 
-                                currentPage = 1
-                            },
-                            isDark = state.isDarkMode,
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
-                        )
                     }
                 }
             }
         }
-        Spacer(modifier = Modifier.height(100.dp))
+
+        item {
+            Spacer(modifier = Modifier.height(100.dp))
+        }
     }
 
     // Add or Edit Document dialog modal
@@ -1119,7 +1146,8 @@ fun DocumentItemCard(
     onEditClick: (() -> Unit)? = null,
     onStatusUpdate: ((String) -> Unit)? = null,
     onConvertToInvoice: (() -> Unit)? = null,
-    isDarkMode: Boolean = true
+    isDarkMode: Boolean = true,
+    onPartnerClick: (String, String) -> Unit = { _, _ -> }
 ) {
     val dateStr = SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(doc.createdAt)
     val colorTag = when (doc.status.uppercase()) {
@@ -1182,8 +1210,18 @@ fun DocumentItemCard(
                 verticalAlignment = Alignment.Bottom
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("CLIENT", fontSize = 8.sp, color = MaterialTheme.colorScheme.secondary)
-                    Text(doc.clientName, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                    val partnerType = if (doc.type.uppercase() == "BILL" || doc.type.uppercase() == "PO") "VENDOR" else "CLIENT"
+                    Text(partnerType, fontSize = 8.sp, color = MaterialTheme.colorScheme.secondary)
+                    Text(
+                        text = doc.clientName,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary,
+                        maxLines = 1,
+                        modifier = Modifier.clickable {
+                            onPartnerClick(doc.clientName, partnerType)
+                        }
+                    )
                 }
 
                 Column(horizontalAlignment = Alignment.End) {
@@ -1305,135 +1343,133 @@ fun TablePaginationControl(
 ) {
     val textColor = if (isDark) Color.White.copy(alpha = 0.6f) else Color.Black.copy(alpha = 0.6f)
     
-    BoxWithConstraints(
+    Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp, horizontal = 4.dp)
+            .padding(vertical = 4.dp, horizontal = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        val availableWidth = maxWidth
-        val isVeryCompact = availableWidth < 360.dp
-        val isCompact = availableWidth < 500.dp
+        // Left side: space is now used to show the count beautifully
+        Text(
+            text = "Showing ${if (totalItems == 0) 0 else startIndex + 1}–${endIndex} of ${totalItems} entries",
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Medium,
+            color = textColor
+        )
 
+        // Right side: dropdown for data limit and navigation arrows moved here
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Left region: Items Per Page Selector
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(if (isVeryCompact) 2.dp else 4.dp)
-            ) {
-                if (!isVeryCompact) {
+            var dropdownExpanded by remember { mutableStateOf(false) }
+            Box {
+                Row(
+                    modifier = Modifier
+                        .background(
+                            if (isDark) Color(0xFF131926).copy(alpha = 0.4f) else Color.White,
+                            RoundedCornerShape(6.dp)
+                        )
+                        .border(
+                            1.dp,
+                            if (isDark) Color.White.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.08f),
+                            RoundedCornerShape(6.dp)
+                        )
+                        .clickable { dropdownExpanded = true }
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
                     Text(
-                        text = "Show:",
-                        fontSize = if (isCompact) 10.sp else 11.sp,
-                        color = textColor,
-                        fontWeight = FontWeight.Medium
+                        text = "Limit: $itemsPerPage",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isDark) Color.White.copy(alpha = 0.9f) else Color.Black.copy(alpha = 0.9f)
+                    )
+                    Icon(
+                        imageVector = Icons.Filled.ArrowDropDown,
+                        contentDescription = "Select Limit",
+                        modifier = Modifier.size(14.dp),
+                        tint = MaterialTheme.colorScheme.primary
                     )
                 }
-                
-                listOf(5, 10, 20).forEach { size ->
-                    val isSelected = itemsPerPage == size
-                    val chipBg = if (isSelected) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        if (isDark) Color(0xFF131926).copy(alpha = 0.4f) else Color.White
-                    }
-                    val chipTextCol = if (isSelected) {
-                        Color.White
-                    } else {
-                        if (isDark) Color.White.copy(alpha = 0.7f) else Color.Black.copy(alpha = 0.7f)
-                    }
-                    Box(
-                        modifier = Modifier
-                            .background(chipBg, RoundedCornerShape(4.dp))
-                            .border(
-                                1.dp,
-                                if (isSelected) Color.Transparent else (if (isDark) Color.White.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.08f)),
-                                RoundedCornerShape(4.dp)
-                            )
-                            .clickable { onItemsPerPageChange(size) }
-                            .padding(
-                                horizontal = if (isVeryCompact) 5.dp else if (isCompact) 6.dp else 8.dp, 
-                                vertical = if (isCompact) 3.dp else 4.dp
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = size.toString(),
-                            fontSize = if (isCompact) 10.sp else 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = chipTextCol
+
+                DropdownMenu(
+                    expanded = dropdownExpanded,
+                    onDismissRequest = { dropdownExpanded = false },
+                    modifier = Modifier.background(if (isDark) Color(0xFF1F2937) else Color.White)
+                ) {
+                    listOf(5, 10, 20, 50).forEach { size ->
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    text = "$size per page",
+                                    fontSize = 11.sp,
+                                    fontWeight = if (itemsPerPage == size) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (itemsPerPage == size) MaterialTheme.colorScheme.primary else (if (isDark) Color.White else Color.Black)
+                                )
+                            },
+                            onClick = {
+                                onItemsPerPageChange(size)
+                                dropdownExpanded = false
+                            },
+                            modifier = Modifier.height(36.dp)
                         )
                     }
                 }
             }
 
-            // Right region: Navigation details & Arrow actions
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(if (isVeryCompact) 4.dp else 8.dp)
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                // Page ranges
-                Text(
-                    text = if (isVeryCompact) "${if (totalItems == 0) 0 else startIndex + 1}-${endIndex}" else "${if (totalItems == 0) 0 else startIndex + 1}-${endIndex} of ${totalItems}",
-                    fontSize = if (isCompact) 10.sp else 11.sp,
-                    color = textColor,
-                    fontWeight = FontWeight.Bold
-                )
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(2.dp)
+                // Previous Icon Button
+                IconButton(
+                    onClick = { if (currentPage > 1) onPageChange(currentPage - 1) },
+                    enabled = currentPage > 1,
+                    modifier = Modifier
+                        .size(24.dp)
+                        .background(
+                            if (isDark) Color(0xFF131926).copy(alpha = 0.4f) else Color.White,
+                            RoundedCornerShape(4.dp)
+                        )
+                        .border(
+                            1.dp,
+                            if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.05f),
+                            RoundedCornerShape(4.dp)
+                        )
                 ) {
-                    // Previous Icon Button
-                    IconButton(
-                        onClick = { if (currentPage > 1) onPageChange(currentPage - 1) },
-                        enabled = currentPage > 1,
-                        modifier = Modifier
-                            .size(if (isCompact) 24.dp else 28.dp)
-                            .background(
-                                if (isDark) Color(0xFF131926).copy(alpha = 0.4f) else Color.White,
-                                RoundedCornerShape(4.dp)
-                            )
-                            .border(
-                                1.dp,
-                                if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.05f),
-                                RoundedCornerShape(4.dp)
-                            )
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.ChevronLeft,
-                            contentDescription = "Previous Page",
-                            tint = if (currentPage > 1) MaterialTheme.colorScheme.primary else textColor.copy(alpha = 0.3f),
-                            modifier = Modifier.size(if (isCompact) 12.dp else 14.dp)
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.Filled.ChevronLeft,
+                        contentDescription = "Previous Page",
+                        tint = if (currentPage > 1) MaterialTheme.colorScheme.primary else textColor.copy(alpha = 0.3f),
+                        modifier = Modifier.size(12.dp)
+                    )
+                }
 
-                    // Next Icon Button
-                    IconButton(
-                        onClick = { if (currentPage < totalPages) onPageChange(currentPage + 1) },
-                        enabled = currentPage < totalPages,
-                        modifier = Modifier
-                            .size(if (isCompact) 24.dp else 28.dp)
-                            .background(
-                                if (isDark) Color(0xFF131926).copy(alpha = 0.4f) else Color.White,
-                                RoundedCornerShape(4.dp)
-                            )
-                            .border(
-                                1.dp,
-                                if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.05f),
-                                RoundedCornerShape(4.dp)
-                            )
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.ChevronRight,
-                            contentDescription = "Next Page",
-                            tint = if (currentPage < totalPages) MaterialTheme.colorScheme.primary else textColor.copy(alpha = 0.3f),
-                            modifier = Modifier.size(if (isCompact) 12.dp else 14.dp)
+                // Next Icon Button
+                IconButton(
+                    onClick = { if (currentPage < totalPages) onPageChange(currentPage + 1) },
+                    enabled = currentPage < totalPages,
+                    modifier = Modifier
+                        .size(24.dp)
+                        .background(
+                            if (isDark) Color(0xFF131926).copy(alpha = 0.4f) else Color.White,
+                            RoundedCornerShape(4.dp)
                         )
-                    }
+                        .border(
+                            1.dp,
+                            if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.05f),
+                            RoundedCornerShape(4.dp)
+                        )
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.ChevronRight,
+                        contentDescription = "Next Page",
+                        tint = if (currentPage < totalPages) MaterialTheme.colorScheme.primary else textColor.copy(alpha = 0.3f),
+                        modifier = Modifier.size(12.dp)
+                    )
                 }
             }
         }
@@ -1525,7 +1561,8 @@ fun TableRowItem(
     onEditClick: (() -> Unit)? = null,
     onStatusUpdate: ((String) -> Unit)? = null,
     onConvertToInvoice: (() -> Unit)? = null,
-    isDarkMode: Boolean = true
+    isDarkMode: Boolean = true,
+    onPartnerClick: (String, String) -> Unit = { _, _ -> }
 ) {
     val dateStr = SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(doc.createdAt)
     val colorTag = when (doc.status.uppercase()) {
@@ -1583,13 +1620,19 @@ fun TableRowItem(
         )
 
         // 3. CLIENT
+        val partnerType = if (doc.type.uppercase() == "BILL" || doc.type.uppercase() == "PO") "VENDOR" else "CLIENT"
         Text(
             text = doc.clientName,
-            modifier = Modifier.width(160.dp),
+            modifier = Modifier
+                .width(160.dp)
+                .clickable {
+                    onPartnerClick(doc.clientName, partnerType)
+                },
             fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
             maxLines = 1,
             overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-            color = if (isDarkMode) Color.White.copy(alpha = 0.8f) else Color.Black.copy(alpha = 0.8f)
+            color = MaterialTheme.colorScheme.primary
         )
 
         // 4. TITLE
@@ -2032,6 +2075,14 @@ fun AddDocumentDialogForm(
     var selectedType by remember { mutableStateOf(docToEdit?.type ?: "INVOICE") }
     var title by remember { mutableStateOf(docToEdit?.title ?: "") }
     var client by remember { mutableStateOf(docToEdit?.clientName ?: "") }
+    var showClientDropdown by remember { mutableStateOf(false) }
+    val partnersList by viewModel.partners.collectAsState()
+    val targetPartnerType = if (selectedType == "BILL" || selectedType == "PO") "VENDOR" else "CLIENT"
+    val clientSuggestions = remember(client, partnersList, targetPartnerType) {
+        partnersList.filter {
+            it.type == targetPartnerType && (client.isBlank() || it.name.contains(client, ignoreCase = true))
+        }
+    }
     
     // Support GST and base pricing natively
     var gstRateSelected by remember { mutableStateOf(docToEdit?.gstRatePct ?: 18.0) }
@@ -2449,16 +2500,59 @@ fun AddDocumentDialogForm(
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                OutlinedTextField(
-                    value = client,
-                    onValueChange = { client = it },
-                    label = { Text("Vendor / Client Name", fontSize = 11.sp) },
-                    singleLine = true,
-                    colors = textFieldColors,
-                    shape = RoundedCornerShape(25.dp),
-                    textStyle = androidx.compose.ui.text.TextStyle(fontSize = 12.sp),
-                    modifier = Modifier.fillMaxWidth()
-                )
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    Column {
+                        OutlinedTextField(
+                            value = client,
+                            onValueChange = { 
+                                client = it
+                                showClientDropdown = true
+                            },
+                            label = { Text(if (selectedType == "BILL" || selectedType == "PO") "Vendor Name *" else "Client Name *", fontSize = 11.sp) },
+                            singleLine = true,
+                            colors = textFieldColors,
+                            shape = RoundedCornerShape(25.dp),
+                            textStyle = androidx.compose.ui.text.TextStyle(fontSize = 12.sp),
+                            modifier = Modifier.fillMaxWidth(),
+                            trailingIcon = {
+                                IconButton(onClick = { showClientDropdown = !showClientDropdown }) {
+                                    Icon(
+                                        imageVector = Icons.Filled.ArrowDropDown, 
+                                        contentDescription = "Toggle Partners",
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+                        )
+                        if (showClientDropdown && clientSuggestions.isNotEmpty()) {
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 4.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(containerColor = if (isDark) CorporateSurfaceDark else CorporateSurfaceLight),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)),
+                                elevation = CardDefaults.cardElevation(6.dp)
+                            ) {
+                                Column(modifier = Modifier.padding(6.dp)) {
+                                    clientSuggestions.take(4).forEach { partner ->
+                                        Text(
+                                            text = partner.name,
+                                            fontSize = 12.sp,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clickable {
+                                                    client = partner.name
+                                                    showClientDropdown = false
+                                                }
+                                                .padding(8.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(14.dp))
 
@@ -2564,6 +2658,92 @@ fun AddDocumentDialogForm(
                         ) {
                             Text("Calculated Total Amount:", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary)
                             Text("₹${String.format(java.util.Locale.US, "%,.2f", calculatedTotalAmount)}", fontSize = 14.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
+                        }
+                    }
+                }
+
+                // --- LIVE DOCUMENT TEMPLATE PREVIEW ---
+                Spacer(modifier = Modifier.height(16.dp))
+                Text("Live Document Template Preview", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                Spacer(modifier = Modifier.height(6.dp))
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = if (isDark) Color(0xFF1E293B) else Color(0xFFF1F5F9)),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = selectedType,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Black,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier
+                                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                            Text(
+                                text = customDocNo.ifBlank { "PROP-${selectedType}-001" },
+                                fontSize = 10.sp,
+                                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.secondary
+                            )
+                        }
+                        
+                        Spacer(modifier = Modifier.height(10.dp))
+                        
+                        Text(
+                            text = title.ifBlank { "[No Item Selected / Untitled]" },
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        
+                        Spacer(modifier = Modifier.height(4.dp))
+                        
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                val labelType = if (selectedType == "BILL" || selectedType == "PO") "VENDOR" else "CLIENT"
+                                Text(labelType, fontSize = 8.sp, color = MaterialTheme.colorScheme.secondary)
+                                Text(
+                                    text = client.ifBlank { "[Draft Entity Name]" },
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            
+                            Column(horizontalAlignment = Alignment.End) {
+                                Text("TOTAL DUE", fontSize = 8.sp, color = MaterialTheme.colorScheme.secondary)
+                                Text(
+                                    text = "₹${String.format(java.util.Locale.US, "%,.2f", calculatedTotalAmount)}",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                        
+                        if (notes.isNotBlank()) {
+                            Spacer(modifier = Modifier.height(6.dp))
+                            HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Memo: $notes",
+                                fontSize = 9.sp,
+                                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                 }
@@ -2880,11 +3060,34 @@ fun PdfRendererPreviewPanel(
             Spacer(modifier = Modifier.height(18.dp))
 
             // Parties details
-            Text("ISSUED TO (CLIENT):", fontSize = 10.sp, color = textSecondary, fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp)
+            val partnerType = if (doc.type.uppercase() == "BILL" || doc.type.uppercase() == "PO") "VENDOR" else "CLIENT"
+            Text("PARTY DETAIL ($partnerType):", fontSize = 10.sp, color = textSecondary, fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp)
             Spacer(modifier = Modifier.height(2.dp))
-            Text(doc.clientName, fontSize = 15.sp, fontWeight = FontWeight.Black, color = textPrimary)
-            Spacer(modifier = Modifier.height(4.dp))
-            Text("Registered corporate workspace partner profile.", fontSize = 11.sp, color = textSecondary)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .clickable {
+                        onDismiss()
+                        viewModel.selectAndNavigateToPartnerProfile(doc.clientName, partnerType)
+                    }
+                    .padding(vertical = 4.dp)
+            ) {
+                Text(
+                    text = doc.clientName,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Black,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = "Go to Profile",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+            Spacer(modifier = Modifier.height(2.dp))
+            Text("Registered corporate workspace partner profile. Tap to navigate to portfolio dashboard.", fontSize = 11.sp, color = textSecondary)
 
             Spacer(modifier = Modifier.height(18.dp))
 

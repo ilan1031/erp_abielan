@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -31,46 +32,144 @@ import kotlin.math.roundToInt
 
 @Composable
 fun AiFloatingConsoleButton(viewModel: ErpViewModel) {
+    val state by viewModel.uiState.collectAsState()
+    
     var showAiDashboard by remember { mutableStateOf(false) }
-    var offsetX by remember { mutableStateOf(0f) }
-    var offsetY by remember { mutableStateOf(0f) }
+    
+    // Draggable position coordinates for the compact Fab Button itself
+    var buttonOffsetX by remember { mutableStateOf(0f) }
+    var buttonOffsetY by remember { mutableStateOf(0f) }
+    
+    // Draggable position coordinates for the expanded Consultation Dialogue Card
+    var dialogueOffsetX by remember { mutableStateOf(0f) }
+    var dialogueOffsetY by remember { mutableStateOf(0f) }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        contentAlignment = Alignment.BottomEnd
+    BoxWithConstraints(
+        modifier = Modifier.fillMaxSize()
     ) {
-        FloatingActionButton(
-            onClick = { showAiDashboard = true },
-            containerColor = MaterialTheme.colorScheme.primary,
-            elevation = FloatingActionButtonDefaults.elevation(6.dp),
-            modifier = Modifier
-                .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) }
-                .pointerInput(Unit) {
-                    detectDragGestures { change, dragAmount ->
-                        change.consume()
-                        offsetX += dragAmount.x
-                        offsetY += dragAmount.y
-                    }
-                }
-                .padding(bottom = 60.dp) // Offset above the bottom navigation bar safely
-        ) {
-            Icon(
-                imageVector = Icons.Filled.SupportAgent,
-                contentDescription = "Workspace Assistant",
-                tint = Color.White,
-                modifier = Modifier.size(24.dp)
-            )
-        }
-    }
+        val density = LocalDensity.current
+        val widthPx = with(density) { maxWidth.toPx() }
+        val heightPx = with(density) { maxHeight.toPx() }
+        
+        // Dynamic dimensions based on customizable user settings popup
+        val cardWidthDp = when (state.aiOverlaySize) {
+            "Small" -> 290.dp
+            "Large" -> 375.dp
+            else -> 335.dp // Medium default
+        }.coerceAtMost(maxWidth - 12.dp)
 
-    if (showAiDashboard) {
-        Dialog(onDismissRequest = { showAiDashboard = false }) {
-            AiAssistantDialogContent(
-                viewModel = viewModel,
-                onDismiss = { showAiDashboard = false }
-            )
+        val cardHeightDp = when (state.aiOverlaySize) {
+            "Small" -> 370.dp
+            "Large" -> 535.dp
+            else -> 465.dp // Medium default
+        }.coerceAtMost(maxHeight - 90.dp)
+
+        val cardWidthPx = with(density) { cardWidthDp.toPx() }
+        val cardHeightPx = with(density) { cardHeightDp.toPx() }
+        
+        // --- BUTTON DRAG SETUP ---
+        val buttonSizePx = with(density) { 56.dp.toPx() }
+        val marginPx = with(density) { 16.dp.toPx() }
+        val bottomMarginPx = with(density) { (16.dp + 60.dp).toPx() }
+
+        val minBtnX = -(widthPx - 2 * marginPx - buttonSizePx)
+        val maxBtnX = 0f
+        val minBtnY = -(heightPx - marginPx - bottomMarginPx - buttonSizePx)
+        val maxBtnY = 0f
+
+        // --- DIALOGUE DRAG CLAMP CALCULATION ---
+        val boundsSpace = state.aiOverlayMovingSpace
+        
+        val marginPaddingPx = with(density) { 8.dp.toPx() }
+        val bottomBarPaddingPx = with(density) { 68.dp.toPx() }
+        val topBarPaddingPx = with(density) { 48.dp.toPx() }
+
+        // Within Margins: Clamped strictly on stage
+        val minDlgX_clamped = -(widthPx - cardWidthPx) / 2f + marginPaddingPx
+        val maxDlgX_clamped = (widthPx - cardWidthPx) / 2f - marginPaddingPx
+        val minDlgY_clamped = -(heightPx - cardHeightPx) / 2f + topBarPaddingPx
+        val maxDlgY_clamped = (heightPx - cardHeightPx) / 2f - bottomBarPaddingPx
+
+        // Full Screen: Generous/freely move offstage boundary bleed
+        val minDlgX_generous = -widthPx / 2f + with(density) { 80.dp.toPx() }     // at least 80dp remains on screen
+        val maxDlgX_generous = widthPx / 2f - with(density) { 80.dp.toPx() }
+        val minDlgY_generous = -heightPx / 2f + with(density) { 80.dp.toPx() }
+        val maxDlgY_generous = heightPx / 2f - with(density) { 140.dp.toPx() }
+
+        val clampedDlgX = if (boundsSpace == "Within Margins") {
+            dialogueOffsetX.coerceIn(minDlgX_clamped, maxDlgX_clamped)
+        } else {
+            dialogueOffsetX.coerceIn(minDlgX_generous, maxDlgX_generous)
+        }
+
+        val clampedDlgY = if (boundsSpace == "Within Margins") {
+            dialogueOffsetY.coerceIn(minDlgY_clamped, maxDlgY_clamped)
+        } else {
+            dialogueOffsetY.coerceIn(minDlgY_generous, maxDlgY_generous)
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            contentAlignment = Alignment.BottomEnd
+        ) {
+            // Render floating FAB if dialogue is not showing
+            if (!showAiDashboard && state.isAiAssistantEnabled) {
+                FloatingActionButton(
+                    onClick = { showAiDashboard = true },
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    elevation = FloatingActionButtonDefaults.elevation(6.dp),
+                    modifier = Modifier
+                        .offset { IntOffset(buttonOffsetX.roundToInt(), buttonOffsetY.roundToInt()) }
+                        .pointerInput(Unit) {
+                            detectDragGestures { change, dragAmount ->
+                                change.consume()
+                                val newX = buttonOffsetX + dragAmount.x
+                                val newY = buttonOffsetY + dragAmount.y
+                                buttonOffsetX = newX.coerceIn(minBtnX, maxBtnX)
+                                buttonOffsetY = newY.coerceIn(minBtnY, maxBtnY)
+                            }
+                        }
+                        .padding(bottom = 60.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.SupportAgent,
+                        contentDescription = "Workspace Assistant",
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
+        }
+
+        // Render floating Consultation dialogue card when showing
+        if (showAiDashboard && state.isAiAssistantEnabled) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                AiAssistantDialogContent(
+                    viewModel = viewModel,
+                    onDismiss = { showAiDashboard = false },
+                    modifier = Modifier
+                        .size(cardWidthDp, cardHeightDp)
+                        .offset { IntOffset(clampedDlgX.roundToInt(), clampedDlgY.roundToInt()) }
+                        .border(
+                            width = 2.dp,
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.40f),
+                            shape = RoundedCornerShape(20.dp)
+                        ),
+                    headerModifier = Modifier
+                        .pointerInput(boundsSpace) {
+                            detectDragGestures { change, dragAmount ->
+                                change.consume()
+                                dialogueOffsetX += dragAmount.x
+                                dialogueOffsetY += dragAmount.y
+                            }
+                        }
+                )
+            }
         }
     }
 }
@@ -78,54 +177,69 @@ fun AiFloatingConsoleButton(viewModel: ErpViewModel) {
 @Composable
 fun AiAssistantDialogContent(
     viewModel: ErpViewModel,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+    headerModifier: Modifier = Modifier
 ) {
     val state by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
 
     Card(
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = if (state.isDarkMode) CorporateSurfaceDark.copy(alpha = 0.90f) else CorporateSurfaceLight.copy(alpha = 0.94f)),
-        elevation = CardDefaults.cardElevation(0.dp),
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(500.dp)
-            .padding(8.dp)
+        colors = CardDefaults.cardColors(containerColor = if (state.isDarkMode) CorporateSurfaceDark.copy(alpha = 0.95f) else CorporateSurfaceLight.copy(alpha = 0.98f)),
+        elevation = CardDefaults.cardElevation(8.dp),
+        modifier = modifier
             .glassCardAdaptive(shape = RoundedCornerShape(20.dp), isDarkMode = state.isDarkMode)
     ) {
-        Column(modifier = Modifier.padding(18.dp)) {
-            // Header
+        Column(modifier = Modifier.padding(14.dp)) {
+            // Header: styled to be a visually obvious draggable area
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(if (state.isDarkMode) Color.White.copy(alpha = 0.05f) else Color.Black.copy(alpha = 0.03f), RoundedCornerShape(8.dp))
+                    .then(headerModifier)
+                    .padding(horizontal = 8.dp, vertical = 6.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        imageVector = Icons.Filled.SupportAgent,
-                        contentDescription = null,
+                        imageVector = Icons.Filled.DragIndicator,
+                        contentDescription = "Drag overlay",
                         tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(16.dp)
                     )
-                    Spacer(modifier = Modifier.width(10.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        "Abielan Consultation Desk",
+                        "Advisory Desk",
                         fontWeight = FontWeight.Black,
-                        fontSize = 16.sp,
+                        fontSize = 13.sp,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                 }
 
-                IconButton(onClick = onDismiss, modifier = Modifier.size(28.dp)) {
-                    Icon(Icons.Filled.Close, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "DRAG TO MOVE",
+                        fontSize = 8.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                        modifier = Modifier.padding(end = 4.dp)
+                    )
+                    IconButton(onClick = onDismiss, modifier = Modifier.size(24.dp)) {
+                        Icon(Icons.Filled.Close, contentDescription = "Close", tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(14.dp))
+                    }
                 }
             }
 
+            Spacer(modifier = Modifier.height(10.dp))
+
             Text(
-                "Real-time corporate ledger auditing, budget anomalies analysis, and tax consultations.",
-                fontSize = 10.sp,
+                "Real-time corporate ledger auditing, budget anomalies assessment, and GST consultations.",
+                fontSize = 9.sp,
+                lineHeight = 12.sp,
                 color = MaterialTheme.colorScheme.secondary,
-                modifier = Modifier.padding(bottom = 12.dp, start = 4.dp)
+                modifier = Modifier.padding(bottom = 8.dp, start = 4.dp)
             )
 
             // Dynamic Scroll Dialogue Container
@@ -139,7 +253,7 @@ fun AiAssistantDialogContent(
                         color = if (state.isDarkMode) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.05f),
                         shape = RoundedCornerShape(12.dp)
                     )
-                    .padding(12.dp)
+                    .padding(8.dp)
             ) {
                 if (state.aiLoading) {
                     Column(
@@ -147,11 +261,11 @@ fun AiAssistantDialogContent(
                         verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp))
                         Spacer(modifier = Modifier.height(10.dp))
                         Text(
-                            "Analyzing macro enterprise variables...",
-                            fontSize = 11.sp,
+                            "Analyzing macro variables...",
+                            fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.secondary
                         )
@@ -161,19 +275,19 @@ fun AiAssistantDialogContent(
                         modifier = Modifier
                             .fillMaxSize()
                             .verticalScroll(rememberScrollState()),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Spacer(modifier = Modifier.height(20.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
                         Icon(
                             imageVector = Icons.Filled.Forum, 
                             contentDescription = null, 
-                            modifier = Modifier.size(48.dp), 
+                            modifier = Modifier.size(28.dp), 
                             tint = MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f)
                         )
                         Text(
-                            "Ask Abielan Advisor anything about your enterprise:",
-                            fontSize = 12.sp,
+                            "Consult Abielan Advisor:",
+                            fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.secondary
                         )
@@ -187,7 +301,7 @@ fun AiAssistantDialogContent(
 
                         prompts.forEach { p ->
                             Card(
-                                shape = RoundedCornerShape(10.dp),
+                                shape = RoundedCornerShape(8.dp),
                                 colors = CardDefaults.cardColors(containerColor = Color.Transparent),
                                 elevation = CardDefaults.cardElevation(0.dp),
                                 modifier = Modifier
@@ -196,12 +310,12 @@ fun AiAssistantDialogContent(
                                         viewModel.setAiPromptText(p)
                                         viewModel.askAdvisoryAgent()
                                     }
-                                    .glassCardAdaptive(shape = RoundedCornerShape(10.dp), isDarkMode = state.isDarkMode)
+                                    .glassCardAdaptive(shape = RoundedCornerShape(8.dp), isDarkMode = state.isDarkMode)
                             ) {
-                                Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Filled.Lightbulb, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(14.dp))
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(p, fontSize = 11.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
+                                Row(modifier = Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Filled.Lightbulb, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(12.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(p, fontSize = 10.sp, minLines = 1, maxLines = 2, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
                                 }
                             }
                         }
@@ -215,16 +329,16 @@ fun AiAssistantDialogContent(
                     ) {
                         Text(
                             text = state.aiResponse,
-                            fontSize = 13.sp,
+                            fontSize = 11.sp,
                             color = MaterialTheme.colorScheme.onBackground,
                             fontWeight = FontWeight.Medium,
-                            lineHeight = 18.sp
+                            lineHeight = 15.sp
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             // Query Input Form
             Row(
@@ -234,7 +348,7 @@ fun AiAssistantDialogContent(
                 OutlinedTextField(
                     value = state.aiPrompt,
                     onValueChange = { viewModel.setAiPromptText(it) },
-                    placeholder = { Text("Consult workspace advisor...", fontSize = 12.sp) },
+                    placeholder = { Text("Consult advisor...", fontSize = 11.sp) },
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedTextColor = MaterialTheme.colorScheme.onSurface,
                         unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
@@ -245,25 +359,26 @@ fun AiAssistantDialogContent(
                     ),
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(10.dp),
-                    maxLines = 2,
+                    textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 11.sp),
+                    maxLines = 1,
                     trailingIcon = {
                         if (state.aiPrompt.isNotEmpty()) {
                             IconButton(onClick = { viewModel.setAiPromptText("") }) {
-                                Icon(Icons.Filled.Close, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Icon(Icons.Filled.Close, contentDescription = null, modifier = Modifier.size(14.dp))
                             }
                         }
                     }
                 )
 
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(6.dp))
 
                 IconButton(
                     onClick = { viewModel.askGenePrompt() },
                     modifier = Modifier
                         .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(10.dp))
-                        .size(48.dp)
+                        .size(38.dp)
                 ) {
-                    Icon(Icons.Filled.Send, contentDescription = "Send", tint = Color.White, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Filled.Send, contentDescription = "Send", tint = Color.White, modifier = Modifier.size(14.dp))
                 }
             }
         }
